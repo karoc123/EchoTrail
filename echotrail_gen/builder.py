@@ -215,8 +215,17 @@ def build(
     for trip in trips:
         _render_trip_page(env, trip, out_path)
         entries_count += len(trip.entries)
-        for entry in trip.entries:
-            _render_entry_page(env, trip, entry, out_path)
+        for index, entry in enumerate(trip.entries):
+            prev_entry = trip.entries[index - 1] if index > 0 else None
+            next_entry = trip.entries[index + 1] if index + 1 < len(trip.entries) else None
+            _render_entry_page(
+                env,
+                trip,
+                entry,
+                out_path,
+                prev_entry=prev_entry,
+                next_entry=next_entry,
+            )
 
     log.info("Build complete → %s/", out_path)
 
@@ -249,10 +258,24 @@ def _render_trip_page(env: Environment, trip: Trip, out_path: Path) -> None:
     _copy_trip_media(trip, out_path)
 
 
-def _render_entry_page(env: Environment, trip: Trip, entry: Entry, out_path: Path) -> None:
+def _render_entry_page(
+    env: Environment,
+    trip: Trip,
+    entry: Entry,
+    out_path: Path,
+    *,
+    prev_entry: Entry | None = None,
+    next_entry: Entry | None = None,
+) -> None:
     tpl = env.get_template("entry.html")
     page_title = entry.date or entry.id
-    html = tpl.render(trip=trip, entry=entry, page_title=page_title)
+    html = tpl.render(
+        trip=trip,
+        entry=entry,
+        prev_entry=prev_entry,
+        next_entry=next_entry,
+        page_title=page_title,
+    )
     dest = out_path / "trips" / trip.id / "entries" / entry.id / "index.html"
     _write(dest, html)
     log.info("  Rendered entry: %s/%s", trip.id, entry.id)

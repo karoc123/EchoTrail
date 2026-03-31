@@ -42,7 +42,19 @@
   <div id="entry-map" class="map map--point" aria-label="Location map"></div>
 
   <nav class="entry-nav">
-    <a href="{{ root_url }}trips/{{ trip.id }}/index.html">← Back to trip</a>
+    {% if prev_entry %}
+    <a class="entry-nav__prev" href="../{{ prev_entry.id }}/index.html">← {{ prev_entry.title or prev_entry.date or prev_entry.id }}</a>
+    {% else %}
+    <span class="entry-nav__spacer" aria-hidden="true"></span>
+    {% endif %}
+
+    <a class="entry-nav__back" href="{{ root_url }}trips/{{ trip.id }}/index.html">← Back to trip</a>
+
+    {% if next_entry %}
+    <a class="entry-nav__next" href="../{{ next_entry.id }}/index.html">{{ next_entry.title or next_entry.date or next_entry.id }} →</a>
+    {% else %}
+    <span class="entry-nav__spacer" aria-hidden="true"></span>
+    {% endif %}
   </nav>
 </article>
 {% endblock %} {% block scripts %}

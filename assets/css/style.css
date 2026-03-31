@@ -343,6 +343,10 @@ hr {
   margin-top: 2.5rem;
   padding-top: 1rem;
   border-top: 1px solid #e0e0e0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 1rem;
+  align-items: center;
   font-family:
     system-ui,
     -apple-system,
@@ -350,6 +354,35 @@ hr {
     Roboto,
     sans-serif;
   font-size: 0.85rem;
+}
+
+.entry-nav__prev {
+  justify-self: start;
+}
+
+.entry-nav__back {
+  justify-self: center;
+}
+
+.entry-nav__next {
+  justify-self: end;
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .entry-nav {
+    grid-template-columns: 1fr;
+  }
+
+  .entry-nav__back,
+  .entry-nav__next {
+    justify-self: start;
+    text-align: left;
+  }
+
+  .entry-nav__spacer {
+    display: none;
+  }
 }
 
 /* ---------- Map ------------------------------------------- */
