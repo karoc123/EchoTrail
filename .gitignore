@@ -1,6 +1,9 @@
 # Build output — never commit
 dist/
 
+# assets can be installed
+assets/vendor/
+
 # Python
 __pycache__/
 *.py[cod]
