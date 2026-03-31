@@ -1,35 +1,53 @@
-"""Tests for echotrail_gen.builder – Markdown rendering and full build integration."""
+"""Tests for echotrail_gen.builder – Markdown rendering, bundled paths, and full build integration."""
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 import pytest
 
-from echotrail_gen.builder import build, _markdown_to_html
+from echotrail_gen.builder import build, _markdown_to_html, _bundled_templates, _bundled_assets
 
 
-# ── Markdown rendering (with markdown library) ─────────────────────────────
+# ── Bundled paths ───────────────────────────────────────────────────────────
+
+class TestBundledPaths:
+    """The bundled template and asset paths must exist inside the package."""
+
+    def test_bundled_templates_exist(self) -> None:
+        tpl = _bundled_templates()
+        assert tpl.is_dir()
+        assert (tpl / "base.html").is_file()
+        assert (tpl / "index.html").is_file()
+        assert (tpl / "trip.html").is_file()
+        assert (tpl / "entry.html").is_file()
+
+    def test_bundled_assets_exist(self) -> None:
+        assets = _bundled_assets()
+        assert assets.is_dir()
+        assert (assets / "css" / "style.css").is_file()
+
+
+# ── Markdown rendering ─────────────────────────────────────────────────────
 
 class TestMarkdownToHtml:
     def test_heading(self):
-        result = str(_markdown_to_html("# Hallo Welt"))
-        assert "<h1>Hallo Welt</h1>" in result
+        result = str(_markdown_to_html("# Hello World"))
+        assert "<h1>Hello World</h1>" in result
 
     def test_bold(self):
-        result = str(_markdown_to_html("Das ist **fett**."))
-        assert "<strong>fett</strong>" in result
+        result = str(_markdown_to_html("This is **bold**."))
+        assert "<strong>bold</strong>" in result
 
     def test_paragraph(self):
-        result = str(_markdown_to_html("Absatz eins.\n\nAbsatz zwei."))
-        assert "<p>Absatz eins.</p>" in result
-        assert "<p>Absatz zwei.</p>" in result
+        result = str(_markdown_to_html("Paragraph one.\n\nParagraph two."))
+        assert "<p>Paragraph one.</p>" in result
+        assert "<p>Paragraph two.</p>" in result
 
     def test_unordered_list(self):
-        result = str(_markdown_to_html("- Eins\n- Zwei"))
-        assert "<li>Eins</li>" in result
-        assert "<li>Zwei</li>" in result
+        result = str(_markdown_to_html("- One\n- Two"))
+        assert "<li>One</li>" in result
+        assert "<li>Two</li>" in result
 
     def test_inline_code(self):
         result = str(_markdown_to_html("Run `pytest`."))
@@ -45,29 +63,12 @@ class TestBuildIntegration:
     def _build_site(self, tmp_path: Path, data_dir: Path, templates_dir: Path, assets_dir: Path):
         """Perform the build once; all tests in this class read from dist/."""
         self.dist = tmp_path / "dist"
-        # builder._copy_trip_media reads from "data/trips/..." relative to CWD,
-        # so we need to set the data_dir correctly.
-        import os
-        old_cwd = os.getcwd()
-        os.chdir(tmp_path)
-        try:
-            # Symlink 'data' so the builder can find media relative to CWD
-            data_link = tmp_path / "data"
-            if not data_link.exists():
-                # On Windows, directory junction works without admin
-                # But data_dir might already be tmp_path/data — check
-                if data_dir != data_link:
-                    import shutil
-                    shutil.copytree(data_dir, data_link)
-
-            build(
-                data_dir=str(data_link),
-                output_dir=str(self.dist),
-                templates_dir=str(templates_dir),
-                assets_dir=str(assets_dir),
-            )
-        finally:
-            os.chdir(old_cwd)
+        build(
+            data_dir=str(data_dir),
+            output_dir=str(self.dist),
+            templates_dir=str(templates_dir),
+            assets_dir=str(assets_dir),
+        )
 
     def _read(self, *parts: str) -> str:
         return (self.dist / Path(*parts)).read_text(encoding="utf-8")
@@ -82,7 +83,7 @@ class TestBuildIntegration:
             self.dist / "trips" / "2026-test-tour" / "entries" / "2026-03-31-berlin" / "index.html"
         ).exists()
         assert (
-            self.dist / "trips" / "2026-test-tour" / "entries" / "2026-04-05-prag" / "index.html"
+            self.dist / "trips" / "2026-test-tour" / "entries" / "2026-04-05-prague" / "index.html"
         ).exists()
 
     # -- index.html --
@@ -101,7 +102,7 @@ class TestBuildIntegration:
 
     def test_index_contains_entry_count(self):
         html = self._read("index.html")
-        assert "2 Einträge" in html
+        assert "2 entries" in html
 
     # -- trip.html --
 
@@ -112,7 +113,7 @@ class TestBuildIntegration:
     def test_trip_contains_route_geojson(self):
         html = self._read("trips", "2026-test-tour", "index.html")
         assert "LineString" in html
-        assert "Testroute" in html
+        assert "Test Route" in html
 
     def test_trip_contains_entry_links(self):
         html = self._read("trips", "2026-test-tour", "index.html")
@@ -126,7 +127,7 @@ class TestBuildIntegration:
 
     def test_trip_renders_description_markdown(self):
         html = self._read("trips", "2026-test-tour", "index.html")
-        assert "<h1>Test-Tour 2026</h1>" in html or "Testreise" in html
+        assert "<h1>Test-Tour 2026</h1>" in html or "test trip" in html
 
     # -- entry.html (Berlin) --
 
@@ -135,20 +136,20 @@ class TestBuildIntegration:
             "trips", "2026-test-tour", "entries", "2026-03-31-berlin", "index.html"
         )
         assert "2026-03-31" in html
-        assert "Deutschland" in html
+        assert "Germany" in html
 
     def test_entry_berlin_contains_weather(self):
         html = self._read(
             "trips", "2026-test-tour", "entries", "2026-03-31-berlin", "index.html"
         )
-        assert "Bewölkt" in html
+        assert "Cloudy" in html
 
     def test_entry_berlin_contains_rendered_markdown(self):
         html = self._read(
             "trips", "2026-test-tour", "entries", "2026-03-31-berlin", "index.html"
         )
-        assert "<h1>Aufbruch aus Berlin</h1>" in html
-        assert "<strong>Großartig</strong>" in html
+        assert "<h1>Departure from Berlin</h1>" in html
+        assert "<strong>Fantastic</strong>" in html
 
     def test_entry_berlin_contains_point_geojson(self):
         html = self._read(
@@ -172,13 +173,13 @@ class TestBuildIntegration:
         assert (media_dir / "foto1.jpg").exists()
         assert (media_dir / "clip.mp4").exists()
 
-    # -- entry.html (Prag – minimal) --
+    # -- entry.html (Prague – minimal) --
 
-    def test_entry_prag_no_media_section(self):
+    def test_entry_prague_no_media_section(self):
         html = self._read(
-            "trips", "2026-test-tour", "entries", "2026-04-05-prag", "index.html"
+            "trips", "2026-test-tour", "entries", "2026-04-05-prague", "index.html"
         )
-        assert "Prag im Morgenlicht" in html
+        assert "Prague in the Morning Light" in html
         assert "media-gallery" not in html
 
     # -- Breadcrumb navigation --
@@ -187,7 +188,7 @@ class TestBuildIntegration:
         html = self._read(
             "trips", "2026-test-tour", "entries", "2026-03-31-berlin", "index.html"
         )
-        assert "Alle Touren" in html
+        assert "All Trips" in html
         assert "Test-Tour 2026" in html
 
     # -- Assets --
@@ -195,6 +196,57 @@ class TestBuildIntegration:
     def test_assets_copied(self):
         assert (self.dist / "assets" / "css" / "style.css").exists()
         assert (self.dist / "assets" / "vendor" / "leaflet" / "leaflet.js").exists()
+
+
+# ── Build with bundled defaults ─────────────────────────────────────────────
+
+class TestBuildWithBundledDefaults:
+    """Build using bundled templates/assets (no explicit --templates/--assets)."""
+
+    def test_build_with_bundled_defaults(self, example_data_dir: Path, tmp_path: Path) -> None:
+        out = tmp_path / "dist"
+        build(data_dir=str(example_data_dir), output_dir=str(out))
+
+        assert (out / "index.html").is_file()
+        assert (out / "assets" / "css" / "style.css").is_file()
+        assert (out / "trips" / "example-europe-trip" / "index.html").is_file()
+        assert (
+            out / "trips" / "example-europe-trip" / "entries" / "2026-03-31-berlin" / "index.html"
+        ).is_file()
+
+    def test_output_is_english(self, example_data_dir: Path, tmp_path: Path) -> None:
+        out = tmp_path / "dist"
+        build(data_dir=str(example_data_dir), output_dir=str(out))
+
+        index_html = (out / "index.html").read_text()
+        assert "All Trips" in index_html
+        assert 'lang="en"' in index_html
+
+    def test_build_with_custom_templates(
+        self, example_data_dir: Path, tmp_path: Path
+    ) -> None:
+        """When custom templates are given they should be used instead."""
+        import shutil
+
+        custom_tpl = tmp_path / "custom_templates"
+        custom_tpl.mkdir()
+        for f in _bundled_templates().iterdir():
+            shutil.copy2(f, custom_tpl / f.name)
+
+        idx = custom_tpl / "index.html"
+        content = idx.read_text()
+        content = content.replace("All Trips", "My Custom Trips")
+        idx.write_text(content)
+
+        out = tmp_path / "dist"
+        build(
+            data_dir=str(example_data_dir),
+            output_dir=str(out),
+            templates_dir=str(custom_tpl),
+        )
+
+        index_html = (out / "index.html").read_text()
+        assert "My Custom Trips" in index_html
 
 
 # ── Edge cases ──────────────────────────────────────────────────────────────
@@ -216,8 +268,8 @@ class TestBuildEdgeCases:
         )
 
         html = (dist / "index.html").read_text(encoding="utf-8")
-        assert "Alle Touren" in html
-        assert "Noch keine Touren vorhanden" in html
+        assert "All Trips" in html
+        assert "No trips found" in html
 
     def test_trip_without_route_renders(
         self, tmp_path: Path, templates_dir: Path, assets_dir: Path
@@ -225,7 +277,7 @@ class TestBuildEdgeCases:
         data = tmp_path / "data" / "trips" / "no-route"
         data.mkdir(parents=True)
         (data / "description.md").write_text(
-            "+++\ntitle = 'Ohne Route'\n+++\nKeine Route.", encoding="utf-8"
+            "+++\ntitle = 'No Route'\n+++\nNo route.", encoding="utf-8"
         )
         dist = tmp_path / "dist"
 
@@ -237,6 +289,17 @@ class TestBuildEdgeCases:
         )
 
         html = (dist / "trips" / "no-route" / "index.html").read_text(encoding="utf-8")
-        assert "Ohne Route" in html
-        # route_geojson_json should be null so the JS handles it gracefully
+        assert "No Route" in html
         assert "null" in html
+
+    def test_build_cleans_output(
+        self, example_data_dir: Path, tmp_path: Path
+    ) -> None:
+        """Consecutive builds should clean the output directory."""
+        out = tmp_path / "dist"
+        stale = out / "stale.html"
+        out.mkdir(parents=True)
+        stale.write_text("old")
+
+        build(data_dir=str(example_data_dir), output_dir=str(out))
+        assert not stale.exists()

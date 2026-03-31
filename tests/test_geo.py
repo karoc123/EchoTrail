@@ -27,6 +27,14 @@ class TestLoadGeojson:
         with pytest.raises(ValueError, match="Expected a JSON object"):
             load_geojson(p)
 
+    def test_loads_example_route(self, example_data_dir: Path):
+        route_path = (
+            example_data_dir / "trips" / "example-europe-trip" / "route.geojson"
+        )
+        result = load_geojson(route_path)
+        assert result["type"] == "FeatureCollection"
+        assert len(result["features"]) == 1
+
 
 # ── gpx_to_geojson ─────────────────────────────────────────────────────────
 
@@ -36,7 +44,7 @@ class TestGpxToGeojson:
             <?xml version="1.0"?>
             <gpx version="1.1">
               <trk>
-                <name>Testroute</name>
+                <name>Test Route</name>
                 <trkseg>
                   <trkpt lat="52.52" lon="13.405"><ele>34</ele></trkpt>
                   <trkpt lat="50.07" lon="14.44"><ele>200</ele></trkpt>
@@ -52,7 +60,7 @@ class TestGpxToGeojson:
         assert len(result["features"]) == 1
         feat = result["features"][0]
         assert feat["geometry"]["type"] == "LineString"
-        assert feat["properties"]["name"] == "Testroute"
+        assert feat["properties"]["name"] == "Test Route"
         # Coordinates include elevation
         assert feat["geometry"]["coordinates"][0] == [13.405, 52.52, 34.0]
 
@@ -61,8 +69,8 @@ class TestGpxToGeojson:
             <?xml version="1.0"?>
             <gpx version="1.1">
               <wpt lat="48.2" lon="16.37">
-                <name>Wien</name>
-                <desc>Hauptstadt</desc>
+                <name>Vienna</name>
+                <desc>Capital</desc>
               </wpt>
             </gpx>
         """)
@@ -74,8 +82,8 @@ class TestGpxToGeojson:
         feat = result["features"][0]
         assert feat["geometry"]["type"] == "Point"
         assert feat["geometry"]["coordinates"] == [16.37, 48.2]
-        assert feat["properties"]["name"] == "Wien"
-        assert feat["properties"]["description"] == "Hauptstadt"
+        assert feat["properties"]["name"] == "Vienna"
+        assert feat["properties"]["description"] == "Capital"
 
     def test_gpx_with_namespace(self, tmp_path: Path):
         gpx = textwrap.dedent("""\

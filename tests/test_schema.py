@@ -23,14 +23,14 @@ class TestParseFrontmatter:
     def test_valid_toml(self):
         text = textwrap.dedent("""\
             +++
-            title = 'Hallo'
+            title = 'Hello'
             count = 42
             +++
 
             Body text here.
         """)
         meta, body = _parse_frontmatter(text)
-        assert meta["title"] == "Hallo"
+        assert meta["title"] == "Hello"
         assert meta["count"] == 42
         assert body == "Body text here."
 
@@ -41,8 +41,6 @@ class TestParseFrontmatter:
         assert body == text
 
     def test_empty_frontmatter(self):
-        # Empty frontmatter (no content between +++ delimiters) does not
-        # match the regex, so the full text is returned as body.
         text = "+++\n+++\nBody only."
         meta, body = _parse_frontmatter(text)
         assert meta == {}
@@ -51,7 +49,6 @@ class TestParseFrontmatter:
     def test_date_value(self):
         text = "+++\ndate = 2026-03-31\n+++\nText."
         meta, body = _parse_frontmatter(text)
-        # TOML native dates are datetime.date objects
         from datetime import date
         assert meta["date"] == date(2026, 3, 31)
 
@@ -93,10 +90,10 @@ class TestLoadEntry:
         assert entry.id == "2026-03-31-berlin"
         assert entry.trip_id == "2026-test-tour"
         assert entry.date == "2026-03-31"
-        assert entry.country == "Deutschland"
-        assert entry.weather == "Bewölkt"
+        assert entry.country == "Germany"
+        assert entry.weather == "Cloudy"
         assert entry.temperature_c == "9"
-        assert "Aufbruch" in entry.text_md
+        assert "Departure" in entry.text_md
 
         # Point GeoJSON generated from lat/lon
         assert entry.point_geojson is not None
@@ -154,7 +151,7 @@ class TestLoadTrip:
         assert trip.id == "2026-test-tour"
         assert trip.title == "Test-Tour 2026"
         assert trip.odometer_km == "1.200"
-        assert "Testreise" in trip.description_md
+        assert "test trip" in trip.description_md
 
         # Route
         assert trip.route_geojson is not None
@@ -164,7 +161,7 @@ class TestLoadTrip:
         # Entries loaded and sorted
         assert len(trip.entries) == 2
         assert trip.entries[0].id == "2026-03-31-berlin"
-        assert trip.entries[1].id == "2026-04-05-prag"
+        assert trip.entries[1].id == "2026-04-05-prague"
 
         # Extra keys
         assert trip.extra["vehicle"] == "Honda CB 500X"
@@ -176,7 +173,7 @@ class TestLoadTrip:
         trip_dir = tmp_path / "no-route"
         trip_dir.mkdir()
         (trip_dir / "description.md").write_text(
-            "+++\ntitle = 'Leer'\n+++\nNix.", encoding="utf-8"
+            "+++\ntitle = 'Empty'\n+++\nNothing.", encoding="utf-8"
         )
         trip = load_trip(trip_dir)
         assert trip.route_geojson is None
@@ -230,3 +227,9 @@ class TestLoadAllTrips:
         data.mkdir()
         trips = load_all_trips(data)
         assert trips == []
+
+    def test_loads_example_data(self, example_data_dir: Path):
+        trips = load_all_trips(example_data_dir)
+        assert len(trips) == 1
+        assert trips[0].title == "Example Europe Trip"
+        assert len(trips[0].entries) == 2

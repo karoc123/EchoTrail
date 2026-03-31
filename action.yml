@@ -1,0 +1,63 @@
+name: 'EchoTrail Build'
+description: 'Build an EchoTrail static travel journal from a content directory.'
+branding:
+  icon: 'map'
+  color: 'orange'
+
+inputs:
+  data-dir:
+    description: 'Content directory containing trips/ subdirectory.'
+    required: false
+    default: 'data'
+  output-dir:
+    description: 'Where to write the generated site.'
+    required: false
+    default: 'dist'
+  templates-dir:
+    description: 'Custom Jinja2 templates directory. Leave empty to use the bundled default theme.'
+    required: false
+    default: ''
+  assets-dir:
+    description: 'Custom assets directory (CSS, etc.). Leave empty to use the bundled default theme.'
+    required: false
+    default: ''
+  python-version:
+    description: 'Python version to use.'
+    required: false
+    default: '3.12'
+  fetch-vendor:
+    description: 'Download Leaflet vendor files during the build (set to "false" to skip).'
+    required: false
+    default: 'true'
+
+outputs:
+  output-dir:
+    description: 'Path of the built site.'
+    value: ${{ inputs.output-dir }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install EchoTrail
+      shell: bash
+      run: pip install "echotrail_gen[markdown] @ git+https://github.com/${{ github.action_repository || github.repository }}.git@${{ github.action_ref || github.sha }}"
+
+    - name: Build site
+      shell: bash
+      run: |
+        ARGS="--data ${{ inputs.data-dir }} --output ${{ inputs.output-dir }}"
+        if [ -n "${{ inputs.templates-dir }}" ]; then
+          ARGS="$ARGS --templates ${{ inputs.templates-dir }}"
+        fi
+        if [ -n "${{ inputs.assets-dir }}" ]; then
+          ARGS="$ARGS --assets ${{ inputs.assets-dir }}"
+        fi
+        if [ "${{ inputs.fetch-vendor }}" = "true" ]; then
+          ARGS="$ARGS --fetch-vendor"
+        fi
+        python -m echotrail_gen build $ARGS
