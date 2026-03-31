@@ -1,17 +1,13 @@
-{% set assets_root = "../../assets/" %}
-{% set root_url = "../../" %}
-{% extends "base.html" %}
-
-{% block title %}{{ trip.title }}{% endblock %}
-
-{% block content %}
+{% set assets_root = "../../assets/" %} {% set root_url = "../../" %} {% extends "base.html" %} {% block title %}{{ trip.title }}{% endblock %} {% block content %}
 <article class="trip-detail">
   <nav class="breadcrumb"><a href="{{ root_url }}index.html">← All Trips</a></nav>
 
   <h1>{{ trip.title }}</h1>
 
   <ul class="trip-meta-list">
-    {% if trip.odometer_km %}<li>🛣 <strong>{{ trip.odometer_km }} km</strong></li>{% endif %}
+    {% if trip.odometer_km %}
+    <li>🛣 <strong>{{ trip.odometer_km }} km</strong></li>
+    {% endif %}
     <li>📍 <strong>{{ trip.entries | length }}</strong> entries</li>
     {% for key, value in trip.extra.items() %}
     <li>{{ key | replace("_", " ") | title }}: {{ value }}</li>
@@ -19,16 +15,11 @@
   </ul>
 
   {% if trip.description_md %}
-  <div class="trip-description">
-    {{ markdown(trip.description_md) }}
-  </div>
-  {% endif %}
-
-  {# Route map #}
+  <div class="trip-description">{{ markdown(trip.description_md) }}</div>
+  {% endif %} {# Route map #}
   <div id="trip-map" class="map map--route" aria-label="Route map"></div>
 
-  {# Entry list with map markers #}
-  {% if trip.entries %}
+  {# Entry list with map markers #} {% if trip.entries %}
   <section class="entry-list">
     <h2>Entries</h2>
     <ul>
@@ -36,7 +27,7 @@
       <li class="entry-item">
         <a href="{{ root_url }}trips/{{ trip.id }}/entries/{{ entry.id }}/index.html">
           <span class="entry-date">{{ entry.date }}</span>
-          {% if entry.country %}<span class="entry-country">{{ entry.country }}</span>{% endif %}
+          {% if entry.title %}<span class="entry-title">{{ entry.title }}</span>{% endif %} {% if entry.country %}<span class="entry-country">{{ entry.country }}</span>{% endif %}
         </a>
       </li>
       {% endfor %}
@@ -44,61 +35,61 @@
   </section>
   {% endif %}
 </article>
-{% endblock %}
-
-{% block scripts %}
+{% endblock %} {% block scripts %}
 <script>
-(function () {
-  var routeGeoJSON = {{ trip.route_geojson_json | safe }};
-  var entries = [
-    {% for entry in trip.entries %}
-    {% if entry.point_geojson %}
-    {
-      id: {{ entry.id | tojson }},
-      date: {{ entry.date | tojson }},
-      url: {{ (root_url ~ "trips/" ~ trip.id ~ "/entries/" ~ entry.id ~ "/index.html") | tojson }},
-      geojson: {{ entry.point_geojson_json | safe }}
-    },
-    {% endif %}
-    {% endfor %}
-  ];
+  (function () {
+    var routeGeoJSON = {{ trip.route_geojson_json | safe }};
+    var entries = [
+      {% for entry in trip.entries %}
+      {% if entry.point_geojson %}
+      {
+        id: {{ entry.id | tojson }},
+        title: {{ entry.title | tojson }},
+        date: {{ entry.date | tojson }},
+        url: {{ (root_url ~ "trips/" ~ trip.id ~ "/entries/" ~ entry.id ~ "/index.html") | tojson }},
+        geojson: {{ entry.point_geojson_json | safe }}
+      },
+      {% endif %}
+      {% endfor %}
+    ];
 
-  var map = L.map("trip-map");
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    maxZoom: 18
-  }).addTo(map);
-
-  var bounds = [];
-
-  if (routeGeoJSON) {
-    var routeLayer = L.geoJSON(routeGeoJSON, {
-      style: { color: "#e05a00", weight: 3, opacity: 0.8 }
+    var map = L.map("trip-map");
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 18
     }).addTo(map);
-    if (routeLayer.getBounds().isValid()) {
-      bounds.push(routeLayer.getBounds());
+
+    var bounds = [];
+
+    if (routeGeoJSON) {
+      var routeLayer = L.geoJSON(routeGeoJSON, {
+        style: { color: "#e05a00", weight: 3, opacity: 0.8 }
+      }).addTo(map);
+      if (routeLayer.getBounds().isValid()) {
+        bounds.push(routeLayer.getBounds());
+      }
     }
-  }
 
-  entries.forEach(function (entry) {
-    if (!entry.geojson) return;
-    var coords = entry.geojson.geometry
-      ? entry.geojson.geometry.coordinates
-      : (entry.geojson.coordinates || null);
-    if (!coords) return;
-    var latlng = [coords[1], coords[0]];
-    var marker = L.marker(latlng).addTo(map);
-    marker.bindPopup('<a href="' + entry.url + '">' + entry.date + '</a>');
-    bounds.push(L.latLngBounds([latlng, latlng]));
-  });
+    entries.forEach(function (entry) {
+      if (!entry.geojson) return;
+      var coords = entry.geojson.geometry
+        ? entry.geojson.geometry.coordinates
+        : (entry.geojson.coordinates || null);
+      if (!coords) return;
+      var latlng = [coords[1], coords[0]];
+      var marker = L.marker(latlng).addTo(map);
+      var label = entry.title || entry.date;
+      marker.bindPopup('<a href="' + entry.url + '">' + label + '</a>');
+      bounds.push(L.latLngBounds([latlng, latlng]));
+    });
 
-  if (bounds.length > 0) {
-    var combined = bounds[0];
-    bounds.forEach(function (b) { combined.extend(b); });
-    map.fitBounds(combined, { padding: [30, 30] });
-  } else {
-    map.setView([51, 10], 5);
-  }
-})();
+    if (bounds.length > 0) {
+      var combined = bounds[0];
+      bounds.forEach(function (b) { combined.extend(b); });
+      map.fitBounds(combined, { padding: [30, 30] });
+    } else {
+      map.setView([51, 10], 5);
+    }
+  })();
 </script>
 {% endblock %}

@@ -6,7 +6,8 @@
     <a href="{{ root_url }}trips/{{ trip.id }}/index.html">{{ trip.title }}</a>
   </nav>
 
-  <h1>{{ entry.date }}{% if entry.country %} &mdash; {{ entry.country }}{% endif %}</h1>
+  <h1>{% if entry.title %}{{ entry.title }}{% else %}{{ entry.date }}{% if entry.country %} &mdash; {{ entry.country }}{% endif %}{% endif %}</h1>
+  <p class="entry-subtitle">{{ entry.date }}{% if entry.country %} &mdash; {{ entry.country }}{% endif %}</p>
 
   <ul class="entry-meta-list">
     {% if entry.weather %}
