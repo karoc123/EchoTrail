@@ -1,3 +1,8 @@
++++
+title = 'Europa-Tour 2026'
+odometer_km = '3.240'
++++
+
 # Europa-Tour 2026
 
 Eine Reise quer durch Europa – von Berlin über Prag, Wien und Budapest bis an die Adriaküste.

@@ -1,3 +1,13 @@
++++
+date = 2026-04-05
+country = 'Tschechien'
+weather = 'Sonnig, vereinzelt Wolken'
+temperature_c = 14
+lat = 50.0755
+lon = 14.4376
+point_name = 'Prag – Altstädter Ring'
++++
+
 # Prag im Morgenlicht
 
 Ich bin kurz nach Sonnenaufgang aufgestanden und zum Altstädter Ring gelaufen –

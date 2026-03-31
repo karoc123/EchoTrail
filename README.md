@@ -31,12 +31,12 @@ This downloads Leaflet JS/CSS/images into `assets/vendor/leaflet/` so the site w
 python -m echotrail_gen build
 ```
 
-| Option | Default | Description |
-|---|---|---|
-| `--data DIR` | `data/` | Root content directory |
-| `--output DIR` | `dist/` | Output directory |
-| `--templates DIR` | `templates/` | Jinja2 templates |
-| `--assets DIR` | `assets/` | Static assets |
+| Option            | Default      | Description            |
+| ----------------- | ------------ | ---------------------- |
+| `--data DIR`      | `data/`      | Root content directory |
+| `--output DIR`    | `dist/`      | Output directory       |
+| `--templates DIR` | `templates/` | Jinja2 templates       |
+| `--assets DIR`    | `assets/`    | Static assets          |
 
 The generated site is written to `dist/`. Open `dist/index.html` in a browser to preview locally.
 
@@ -58,19 +58,37 @@ rsync -avz dist/ user@yourserver.de:/path/to/public_html/echotrail/
 data/trips/2027-skandinavien/
 ```
 
-2. Add the following files (all are optional except `title.txt`):
+2. Add a `description.md` file with TOML front matter (Hugo-style `+++` delimiters):
 
-| File | Description |
-|---|---|
-| `title.txt` | Trip title (displayed as heading) |
-| `description.md` | Long description in Markdown |
-| `odometer_km.txt` | Total distance in km |
-| `cover.jpg` | Cover image (also `cover.jpeg` / `cover.png`) |
-| `route.geojson` | Route as a GeoJSON FeatureCollection (preferred) |
-| `route.gpx` | Route as a GPX file (auto-converted if no `.geojson` present) |
-| `meta.json` | Optional extra metadata (future-proof) |
+```markdown
++++
+title = 'Skandinavien-Tour 2027'
+odometer_km = '4.800'
+vehicle = 'BMW R 1250 GS'
++++
 
-Any additional `*.txt` file in the trip directory is automatically read as metadata and shown on the trip page. For example, `vehicle.txt` → labelled "Vehicle".
+# Skandinavien-Tour 2027
+
+Drei Wochen durch Norwegen, Schweden und Finnland …
+```
+
+**Front matter keys (trip)**:
+
+| Key           | Required | Description                       |
+| ------------- | -------- | --------------------------------- |
+| `title`       | Yes      | Trip title (displayed as heading) |
+| `odometer_km` | No       | Total distance in km              |
+
+Any additional key in the front matter is automatically picked up as extra metadata and shown on the trip page. For example, `vehicle = 'BMW R 1250 GS'` → labelled "Vehicle".
+
+3. Optionally add the following files alongside `description.md`:
+
+| File            | Description                                                   |
+| --------------- | ------------------------------------------------------------- |
+| `cover.jpg`     | Cover image (also `cover.jpeg` / `cover.png`)                 |
+| `route.geojson` | Route as a GeoJSON FeatureCollection (preferred)              |
+| `route.gpx`     | Route as a GPX file (auto-converted if no `.geojson` present) |
+| `meta.json`     | Optional extra metadata (future-proof)                        |
 
 ---
 
@@ -84,37 +102,46 @@ Entries live inside `data/trips/<trip_id>/entries/` and represent individual way
 data/trips/2027-skandinavien/entries/2027-06-15-oslo/
 ```
 
-2. Add the following files:
+2. Add a `text.md` file with TOML front matter (Hugo-style `+++` delimiters):
 
-| File | Description |
-|---|---|
-| `date.txt` | Date string, e.g. `2027-06-15` |
-| `text.md` | Journal text in Markdown |
-| `point.geojson` | Location as a GeoJSON Point Feature |
-| `country.txt` | Country name |
-| `weather.txt` | Weather description |
-| `temperature_c.txt` | Temperature in °C |
-| `meta.json` | Optional extra metadata (future-proof) |
-| `media/` | Directory — place photos (`.jpg`, `.png`, `.webp`, `.gif`, `.avif`) and videos (`.mp4`, `.webm`, `.mov`) here |
+```markdown
++++
+date = 2027-06-15
+country = 'Norwegen'
+weather = 'Sonnig, 18 °C gefühlt'
+temperature_c = 20
+lat = 59.9139
+lon = 10.7522
+point_name = 'Oslo – Hafen'
++++
 
-As with trips, any additional `*.txt` file is automatically picked up as metadata.
+# Ankunft in Oslo
 
-### Point GeoJSON format
-
-```json
-{
-  "type": "Feature",
-  "geometry": {
-    "type": "Point",
-    "coordinates": [13.4050, 52.5200]
-  },
-  "properties": {
-    "name": "Berlin"
-  }
-}
+Der Fährhafen empfängt mich mit strahlendem Sonnenschein …
 ```
 
-Coordinates are `[longitude, latitude]` (GeoJSON standard).
+**Front matter keys (entry)**:
+
+| Key             | Required | Description                                |
+| --------------- | -------- | ------------------------------------------ |
+| `date`          | Yes      | Date, e.g. `2027-06-15` (TOML native date) |
+| `country`       | No       | Country name                               |
+| `weather`       | No       | Weather description                        |
+| `temperature_c` | No       | Temperature in °C (integer)                |
+| `lat`           | No       | Latitude of the location (WGS 84)          |
+| `lon`           | No       | Longitude of the location (WGS 84)         |
+| `point_name`    | No       | Display name for the map marker            |
+
+Any additional key in the front matter is automatically picked up as extra metadata.
+
+`lat`/`lon` replace the former `point.geojson` file — a GeoJSON Point Feature is generated internally.
+
+3. Optionally add:
+
+| File / Dir  | Description                                                                                                   |
+| ----------- | ------------------------------------------------------------------------------------------------------------- |
+| `media/`    | Directory — place photos (`.jpg`, `.png`, `.webp`, `.gif`, `.avif`) and videos (`.mp4`, `.webm`, `.mov`) here |
+| `meta.json` | Optional extra metadata (future-proof)                                                                        |
 
 ---
 
@@ -134,15 +161,11 @@ EchoTrail/
 ├── data/                   # Your content (German text)
 │   └── trips/
 │       └── <trip_id>/
-│           ├── title.txt
-│           ├── description.md
-│           ├── odometer_km.txt
+│           ├── description.md  # +++ front matter: title, odometer_km, …
 │           ├── route.geojson
 │           └── entries/
 │               └── <entry_id>/
-│                   ├── date.txt
-│                   ├── text.md
-│                   ├── point.geojson
+│                   ├── text.md  # +++ front matter: date, country, lat, lon, …
 │                   └── media/
 │
 ├── templates/              # Jinja2 HTML templates
@@ -181,37 +204,37 @@ A `markdown()` helper is available in every template to render Markdown fields a
 
 ### Trip object (available in `trip.html` and `index.html`)
 
-| Key | Type | Description |
-|---|---|---|
-| `id` | str | Directory name |
-| `title` | str | Content of `title.txt` |
-| `description_md` | str | Raw Markdown from `description.md` |
-| `odometer_km` | str | Content of `odometer_km.txt` |
-| `cover` | str or None | Filename of cover image |
-| `route_geojson` | dict or None | Parsed GeoJSON |
-| `route_geojson_json` | str | JSON-serialised route (safe to embed in `<script>`) |
-| `entries` | list | List of Entry objects |
-| `extra` | dict | Extra `*.txt` metadata, keyed by stem |
-| `meta` | dict | Parsed `meta.json` (empty dict if absent) |
-| `url` | str | Relative URL from `dist/` root |
+| Key                  | Type         | Description                                              |
+| -------------------- | ------------ | -------------------------------------------------------- |
+| `id`                 | str          | Directory name                                           |
+| `title`              | str          | From front matter `title` in `description.md`            |
+| `description_md`     | str          | Markdown body from `description.md` (after front matter) |
+| `odometer_km`        | str          | From front matter `odometer_km` in `description.md`      |
+| `cover`              | str or None  | Filename of cover image                                  |
+| `route_geojson`      | dict or None | Parsed GeoJSON                                           |
+| `route_geojson_json` | str          | JSON-serialised route (safe to embed in `<script>`)      |
+| `entries`            | list         | List of Entry objects                                    |
+| `extra`              | dict         | Extra front matter keys not in the known set             |
+| `meta`               | dict         | Parsed `meta.json` (empty dict if absent)                |
+| `url`                | str          | Relative URL from `dist/` root                           |
 
 ### Entry object (available in `entry.html` and within `trip.entries`)
 
-| Key | Type | Description |
-|---|---|---|
-| `id` | str | Directory name |
-| `trip_id` | str | Parent trip ID |
-| `date` | str | Content of `date.txt` |
-| `text_md` | str | Raw Markdown from `text.md` |
-| `country` | str | Content of `country.txt` |
-| `weather` | str | Content of `weather.txt` |
-| `temperature_c` | str | Content of `temperature_c.txt` |
-| `point_geojson` | dict or None | Parsed GeoJSON |
-| `point_geojson_json` | str | JSON-serialised point (safe to embed in `<script>`) |
-| `media` | list | List of `{"type": "image"/"video", "name": "…"}` dicts |
-| `extra` | dict | Extra `*.txt` metadata, keyed by stem |
-| `meta` | dict | Parsed `meta.json` (empty dict if absent) |
-| `url` | str | Relative URL from `dist/` root |
+| Key                  | Type         | Description                                            |
+| -------------------- | ------------ | ------------------------------------------------------ |
+| `id`                 | str          | Directory name                                         |
+| `trip_id`            | str          | Parent trip ID                                         |
+| `date`               | str          | From front matter `date` in `text.md`                  |
+| `text_md`            | str          | Markdown body from `text.md` (after front matter)      |
+| `country`            | str          | From front matter `country`                            |
+| `weather`            | str          | From front matter `weather`                            |
+| `temperature_c`      | str          | From front matter `temperature_c`                      |
+| `point_geojson`      | dict or None | Parsed GeoJSON                                         |
+| `point_geojson_json` | str          | JSON-serialised point (safe to embed in `<script>`)    |
+| `media`              | list         | List of `{"type": "image"/"video", "name": "…"}` dicts |
+| `extra`              | dict         | Extra front matter keys not in the known set           |
+| `meta`               | dict         | Parsed `meta.json` (empty dict if absent)              |
+| `url`                | str          | Relative URL from `dist/` root                         |
 
 ---
 
@@ -225,9 +248,10 @@ To keep build times short, you can pre-convert your GPX files once and commit th
 
 ## Dependencies
 
-| Package | Required | Purpose |
-|---|---|---|
-| `jinja2` | Yes | Template rendering |
-| `markdown` | No (`[markdown]` extra) | Full Markdown rendering |
+| Package    | Required                | Purpose                                                     |
+| ---------- | ----------------------- | ----------------------------------------------------------- |
+| `jinja2`   | Yes                     | Template rendering                                          |
+| `tomli`    | Yes (Python < 3.11)     | TOML front matter parsing (built-in as `tomllib` from 3.11) |
+| `markdown` | No (`[markdown]` extra) | Full Markdown rendering                                     |
 
-No external geo libraries are needed — GeoJSON is parsed with the standard `json` module and GPX with `xml.etree.ElementTree`. 
+No external geo libraries are needed — GeoJSON is parsed with the standard `json` module and GPX with `xml.etree.ElementTree`.

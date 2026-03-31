@@ -1,3 +1,13 @@
++++
+date = 2026-03-31
+country = 'Deutschland'
+weather = 'Bewölkt, leichter Wind'
+temperature_c = 9
+lat = 52.52
+lon = 13.405
+point_name = 'Berlin – Startpunkt'
++++
+
 # Aufbruch aus Berlin
 
 Früh morgens um halb sieben – der Wecker reißt mich aus einem tiefen Schlaf.
@@ -18,4 +28,4 @@ die Sonne durch die Wolken. Ein gutes Zeichen.
 Mittagsrast auf einem kleinen Rastplatz an der B96: belegtes Brötchen,
 Thermoskanne Kaffee, und die erste Seite meines Reisetagebuchs.
 
-*Tag 1 von 21. Es beginnt.*
+_Tag 1 von 21. Es beginnt._

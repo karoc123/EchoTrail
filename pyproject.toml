@@ -9,6 +9,7 @@ description = "Static site generator for EchoTrail travel journals."
 requires-python = ">=3.10"
 dependencies = [
     "jinja2>=3.1",
+    "tomli>=1.1; python_version < '3.11'",
 ]
 
 [project.optional-dependencies]

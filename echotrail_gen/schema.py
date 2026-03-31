@@ -3,25 +3,21 @@
 Reads the on-disk content structure and returns plain Python objects
 (dicts) that the builder passes into Jinja2 templates.
 
+Metadata is stored as TOML front matter (Hugo-style ``+++`` delimiters)
+inside the Markdown files.
+
 Directory layout expected::
 
     data/
       trips/
         <trip_id>/
-          title.txt
-          description.md
-          odometer_km.txt
+          description.md       (with +++ front matter: title, odometer_km, …)
           route.geojson        (preferred)
           route.gpx            (converted if no .geojson present)
           cover.jpg            (optional)
           entries/
             <entry_id>/
-              point.geojson
-              date.txt
-              text.md
-              country.txt      (optional)
-              weather.txt      (optional)
-              temperature_c.txt (optional)
+              text.md           (with +++ front matter: date, country, lat, lon, …)
               media/
                 *.jpg / *.png / *.mp4 …
 """
@@ -30,8 +26,18 @@ from __future__ import annotations
 
 import json
 import logging
+import re
+import sys
 from pathlib import Path
 from typing import Any
+
+if sys.version_info >= (3, 11):
+    import tomllib
+else:
+    try:
+        import tomllib  # type: ignore[import]
+    except ImportError:
+        import tomli as tomllib  # type: ignore[import,no-redef]
 
 from echotrail_gen.geo import gpx_to_geojson, load_geojson
 
@@ -41,30 +47,12 @@ log = logging.getLogger(__name__)
 # Helpers
 # ---------------------------------------------------------------------------
 
-_RESERVED_FILES = {
-    "title.txt",
-    "description.md",
-    "odometer_km.txt",
-    "route.geojson",
-    "route.gpx",
-    "cover.jpg",
-    "cover.jpeg",
-    "cover.png",
-    "meta.json",
-}
-
-_ENTRY_RESERVED_FILES = {
-    "point.geojson",
-    "date.txt",
-    "text.md",
-    "country.txt",
-    "weather.txt",
-    "temperature_c.txt",
-    "meta.json",
-}
-
 _IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif"}
 _VIDEO_EXTS = {".mp4", ".webm", ".mov"}
+
+_FRONTMATTER_RE = re.compile(
+    r"^\+\+\+\s*\n(.*?)\n\+\+\+\s*\n?(.*)", re.DOTALL
+)
 
 
 def _read_text(path: Path) -> str:
@@ -74,13 +62,23 @@ def _read_text(path: Path) -> str:
     return ""
 
 
-def _extra_metadata(directory: Path, reserved: set[str]) -> dict[str, str]:
-    """Return a dict of all *.txt files not in *reserved*, keyed by stem."""
-    meta: dict[str, str] = {}
-    for p in sorted(directory.glob("*.txt")):
-        if p.name not in reserved:
-            meta[p.stem] = _read_text(p)
-    return meta
+def _parse_frontmatter(text: str) -> tuple[dict[str, Any], str]:
+    """Parse TOML front matter delimited by ``+++`` from *text*.
+
+    Returns ``(metadata_dict, body_text)``.  If no valid front matter is
+    found the full text is returned as the body with an empty dict.
+    """
+    m = _FRONTMATTER_RE.match(text)
+    if not m:
+        return {}, text
+    toml_str = m.group(1)
+    body = m.group(2).strip()
+    try:
+        meta = tomllib.loads(toml_str)
+    except Exception as exc:
+        log.warning("Failed to parse TOML front matter: %s", exc)
+        return {}, text
+    return meta, body
 
 
 def _media_files(media_dir: Path) -> list[dict[str, str]]:
@@ -101,26 +99,41 @@ def _media_files(media_dir: Path) -> list[dict[str, str]]:
 # Entry loader
 # ---------------------------------------------------------------------------
 
+_ENTRY_KNOWN_KEYS = {"date", "country", "weather", "temperature_c", "lat", "lon", "point_name"}
+
 
 def load_entry(entry_dir: Path, trip_id: str) -> dict[str, Any]:
     """Load one entry directory and return a descriptor dict."""
     entry_id = entry_dir.name
 
-    # Point geometry
-    point_geojson_path = entry_dir / "point.geojson"
-    point_geojson: dict[str, Any] | None = None
-    if point_geojson_path.exists():
-        try:
-            point_geojson = load_geojson(point_geojson_path)
-        except Exception as exc:
-            log.warning("Could not load %s: %s", point_geojson_path, exc)
+    # Read text.md with front matter
+    raw_text = _read_text(entry_dir / "text.md")
+    meta, text_md = _parse_frontmatter(raw_text)
 
-    # Core fields
-    date = _read_text(entry_dir / "date.txt")
-    text_md = _read_text(entry_dir / "text.md")
-    country = _read_text(entry_dir / "country.txt")
-    weather = _read_text(entry_dir / "weather.txt")
-    temperature_c = _read_text(entry_dir / "temperature_c.txt")
+    # Core fields from front matter
+    date = str(meta.get("date", ""))
+    country = str(meta.get("country", ""))
+    weather = str(meta.get("weather", ""))
+    temperature_c = str(meta.get("temperature_c", "")) if "temperature_c" in meta else ""
+
+    # Point geometry from front matter lat/lon
+    lat = meta.get("lat")
+    lon = meta.get("lon")
+    point_name = str(meta.get("point_name", ""))
+
+    point_geojson: dict[str, Any] | None = None
+    if lat is not None and lon is not None:
+        props: dict[str, Any] = {}
+        if point_name:
+            props["name"] = point_name
+        point_geojson = {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [float(lon), float(lat)],
+            },
+            "properties": props,
+        }
 
     # Optional meta.json (future-proofing)
     meta_json: dict[str, Any] = {}
@@ -131,8 +144,8 @@ def load_entry(entry_dir: Path, trip_id: str) -> dict[str, Any]:
         except Exception as exc:
             log.warning("Could not parse %s: %s", meta_path, exc)
 
-    # Extra *.txt files
-    extra = _extra_metadata(entry_dir, _ENTRY_RESERVED_FILES)
+    # Extra front matter keys (anything not in the known set)
+    extra = {k: str(v) for k, v in meta.items() if k not in _ENTRY_KNOWN_KEYS}
 
     # Media
     media = _media_files(entry_dir / "media")
@@ -158,15 +171,19 @@ def load_entry(entry_dir: Path, trip_id: str) -> dict[str, Any]:
 # Trip loader
 # ---------------------------------------------------------------------------
 
+_TRIP_KNOWN_KEYS = {"title", "odometer_km"}
+
 
 def load_trip(trip_dir: Path) -> dict[str, Any]:
     """Load one trip directory and return a descriptor dict."""
     trip_id = trip_dir.name
 
-    # Title / description
-    title = _read_text(trip_dir / "title.txt") or trip_id
-    description_md = _read_text(trip_dir / "description.md")
-    odometer_km = _read_text(trip_dir / "odometer_km.txt")
+    # Read description.md with front matter
+    raw_desc = _read_text(trip_dir / "description.md")
+    meta, description_md = _parse_frontmatter(raw_desc)
+
+    title = str(meta.get("title", "")) or trip_id
+    odometer_km = str(meta.get("odometer_km", "")) if "odometer_km" in meta else ""
 
     # Cover image (optional)
     cover: str | None = None
@@ -200,8 +217,8 @@ def load_trip(trip_dir: Path) -> dict[str, Any]:
         except Exception as exc:
             log.warning("Could not parse %s: %s", meta_path, exc)
 
-    # Extra *.txt files
-    extra = _extra_metadata(trip_dir, _RESERVED_FILES)
+    # Extra front matter keys
+    extra = {k: str(v) for k, v in meta.items() if k not in _TRIP_KNOWN_KEYS}
 
     # Entries
     entries_dir = trip_dir / "entries"
