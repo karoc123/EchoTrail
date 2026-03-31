@@ -27,21 +27,67 @@ from __future__ import annotations
 import json
 import logging
 import re
-import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    try:
-        import tomllib  # type: ignore[import]
-    except ImportError:
-        import tomli as tomllib  # type: ignore[import,no-redef]
+import tomllib
+from pydantic import BaseModel, ConfigDict
 
 from echotrail_gen.geo import gpx_to_geojson, load_geojson
 
 log = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Data models
+# ---------------------------------------------------------------------------
+
+
+class MediaItem(BaseModel):
+    """Media file descriptor for an entry."""
+
+    model_config = ConfigDict(frozen=True)
+
+    type: Literal["image", "video"]
+    name: str
+
+
+class Entry(BaseModel):
+    """One journal entry / waypoint."""
+
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
+
+    id: str
+    trip_id: str
+    url: str
+    date: str
+    text_md: str
+    country: str = ""
+    weather: str = ""
+    temperature_c: str = ""
+    point_geojson: dict[str, Any] | None = None
+    point_geojson_json: str = "null"
+    media: list[MediaItem] = []
+    extra: dict[str, str] = {}
+    meta: dict[str, Any] = {}
+
+
+class Trip(BaseModel):
+    """One trip with associated entries."""
+
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
+
+    id: str
+    url: str
+    title: str
+    description_md: str
+    odometer_km: str = ""
+    cover: str | None = None
+    route_geojson: dict[str, Any] | None = None
+    route_geojson_json: str = "null"
+    entries: list[Entry]
+    extra: dict[str, str] = {}
+    meta: dict[str, Any] = {}
+    source_dir: Path
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -81,17 +127,17 @@ def _parse_frontmatter(text: str) -> tuple[dict[str, Any], str]:
     return meta, body
 
 
-def _media_files(media_dir: Path) -> list[dict[str, str]]:
+def _media_files(media_dir: Path) -> list[MediaItem]:
     """Return sorted list of media file descriptors from *media_dir*."""
     if not media_dir.is_dir():
         return []
-    files: list[dict[str, str]] = []
+    files: list[MediaItem] = []
     for p in sorted(media_dir.iterdir()):
         ext = p.suffix.lower()
         if ext in _IMAGE_EXTS:
-            files.append({"type": "image", "name": p.name})
+            files.append(MediaItem(type="image", name=p.name))
         elif ext in _VIDEO_EXTS:
-            files.append({"type": "video", "name": p.name})
+            files.append(MediaItem(type="video", name=p.name))
     return files
 
 
@@ -102,8 +148,8 @@ def _media_files(media_dir: Path) -> list[dict[str, str]]:
 _ENTRY_KNOWN_KEYS = {"date", "country", "weather", "temperature_c", "lat", "lon", "point_name"}
 
 
-def load_entry(entry_dir: Path, trip_id: str) -> dict[str, Any]:
-    """Load one entry directory and return a descriptor dict."""
+def load_entry(entry_dir: Path, trip_id: str) -> Entry:
+    """Load one entry directory and return an Entry model."""
     entry_id = entry_dir.name
 
     # Read text.md with front matter
@@ -111,7 +157,8 @@ def load_entry(entry_dir: Path, trip_id: str) -> dict[str, Any]:
     meta, text_md = _parse_frontmatter(raw_text)
 
     # Core fields from front matter
-    date = str(meta.get("date", ""))
+    date_val = meta.get("date", "")
+    date = str(date_val) if date_val is not None else ""
     country = str(meta.get("country", ""))
     weather = str(meta.get("weather", ""))
     temperature_c = str(meta.get("temperature_c", "")) if "temperature_c" in meta else ""
@@ -150,21 +197,21 @@ def load_entry(entry_dir: Path, trip_id: str) -> dict[str, Any]:
     # Media
     media = _media_files(entry_dir / "media")
 
-    return {
-        "id": entry_id,
-        "trip_id": trip_id,
-        "url": f"trips/{trip_id}/entries/{entry_id}/",
-        "date": date,
-        "text_md": text_md,
-        "country": country,
-        "weather": weather,
-        "temperature_c": temperature_c,
-        "point_geojson": point_geojson,
-        "point_geojson_json": json.dumps(point_geojson) if point_geojson else "null",
-        "media": media,
-        "extra": extra,
-        "meta": meta_json,
-    }
+    return Entry(
+        id=entry_id,
+        trip_id=trip_id,
+        url=f"trips/{trip_id}/entries/{entry_id}/",
+        date=date,
+        text_md=text_md,
+        country=country,
+        weather=weather,
+        temperature_c=temperature_c,
+        point_geojson=point_geojson,
+        point_geojson_json=json.dumps(point_geojson) if point_geojson else "null",
+        media=media,
+        extra=extra,
+        meta=meta_json,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -174,8 +221,8 @@ def load_entry(entry_dir: Path, trip_id: str) -> dict[str, Any]:
 _TRIP_KNOWN_KEYS = {"title", "odometer_km"}
 
 
-def load_trip(trip_dir: Path) -> dict[str, Any]:
-    """Load one trip directory and return a descriptor dict."""
+def load_trip(trip_dir: Path) -> Trip:
+    """Load one trip directory and return a Trip model."""
     trip_id = trip_dir.name
 
     # Read description.md with front matter
@@ -228,19 +275,20 @@ def load_trip(trip_dir: Path) -> dict[str, Any]:
             if entry_dir.is_dir():
                 entries.append(load_entry(entry_dir, trip_id))
 
-    return {
-        "id": trip_id,
-        "url": f"trips/{trip_id}/",
-        "title": title,
-        "description_md": description_md,
-        "odometer_km": odometer_km,
-        "cover": cover,
-        "route_geojson": route_geojson,
-        "route_geojson_json": json.dumps(route_geojson) if route_geojson else "null",
-        "entries": entries,
-        "extra": extra,
-        "meta": meta_json,
-    }
+    return Trip(
+        id=trip_id,
+        url=f"trips/{trip_id}/",
+        title=title,
+        description_md=description_md,
+        odometer_km=odometer_km,
+        cover=cover,
+        route_geojson=route_geojson,
+        route_geojson_json=json.dumps(route_geojson) if route_geojson else "null",
+        entries=entries,
+        extra=extra,
+        meta=meta_json,
+        source_dir=trip_dir.resolve(),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -248,14 +296,14 @@ def load_trip(trip_dir: Path) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def load_all_trips(data_dir: Path) -> list[dict[str, Any]]:
+def load_all_trips(data_dir: Path) -> list[Trip]:
     """Load every trip found under *data_dir/trips/* and return a list."""
     trips_root = data_dir / "trips"
     if not trips_root.is_dir():
         log.warning("No trips directory found at %s", trips_root)
         return []
 
-    trips: list[dict[str, Any]] = []
+    trips: list[Trip] = []
     for trip_dir in sorted(trips_root.iterdir()):
         if trip_dir.is_dir():
             log.info("Loading trip: %s", trip_dir.name)

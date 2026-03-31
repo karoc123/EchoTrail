@@ -11,11 +11,10 @@ Content is kept **completely separate from the generator code** — German journ
 ### 1. Install the generator
 
 ```bash
-python -m pip install -e ".[markdown]"
+python -m pip install -e .
 ```
 
-> The optional `markdown` extra installs the `markdown` package for full Markdown rendering.
-> Without it, a built-in minimal renderer handles the most common syntax.
+> Requires Python 3.12+. The `markdown` renderer is installed by default.
 
 ### 2. Vendor Leaflet (one-time setup)
 
@@ -207,6 +206,12 @@ A `markdown()` helper is available in every template to render Markdown fields a
 {{ markdown(trip.description_md) }}
 ```
 
+### Architecture notes
+
+- Content is loaded into typed `Trip` and `Entry` models (Pydantic) in `echotrail_gen/schema.py`, keeping parsing concerns separate from rendering.
+- The build pipeline in `echotrail_gen/builder.py` consumes those models to render templates and copy media/assets.
+- All builds assume Python 3.12+; older Python versions are not supported.
+
 ---
 
 ## Data model reference
@@ -260,7 +265,7 @@ To keep build times short, you can pre-convert your GPX files once and commit th
 | Package    | Required                | Purpose                                                     |
 | ---------- | ----------------------- | ----------------------------------------------------------- |
 | `jinja2`   | Yes                     | Template rendering                                          |
-| `tomli`    | Yes (Python < 3.11)     | TOML front matter parsing (built-in as `tomllib` from 3.11) |
-| `markdown` | No (`[markdown]` extra) | Full Markdown rendering                                     |
+| `markdown` | Yes                     | Markdown rendering                                          |
+| `pydantic` | Yes                     | Typed content models (Trip/Entry)                           |
 
 No external geo libraries are needed — GeoJSON is parsed with the standard `json` module and GPX with `xml.etree.ElementTree`.
