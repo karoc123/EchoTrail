@@ -233,6 +233,36 @@ Any additional key in the front matter is automatically picked up as extra metad
 
 ---
 
+## Importing from external sources
+
+EchoTrail includes helper scripts to import trips from external travel platforms like FindPenguins.
+
+### FindPenguins importer
+
+Import a trip from FindPenguins:
+
+```bash
+# Install scraper dependencies
+pip install -e ".[scraper]"
+
+# Scrape a FindPenguins trip
+python helpers/findpenguins_scraper.py https://findpenguins.com/username/trip/trip-name
+
+# This creates: imported/trip/trip-name/
+# Move it to your data directory
+mv imported/trip/trip-name data/trips/
+```
+
+The scraper will:
+- Create the trip structure with `description.md`
+- Extract all entries/posts with dates, locations, and content
+- Download images to `media/` directories
+- Generate proper TOML front matter for each entry
+
+See [`helpers/README.md`](helpers/README.md) for detailed documentation.
+
+---
+
 ## Project layout
 
 ```
@@ -253,6 +283,10 @@ EchoTrail/
 │   └── default_assets/             # Bundled static assets
 │       ├── css/style.css
 │       └── vendor/leaflet/         # Populated by fetch-vendor
+│
+├── helpers/                        # Import scripts for external platforms
+│   ├── README.md
+│   └── findpenguins_scraper.py     # FindPenguins trip scraper
 │
 ├── example_data/                   # Example content (for testing/demo)
 │   └── trips/
