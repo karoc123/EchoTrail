@@ -12,6 +12,7 @@ build/
 venv/
 env/
 *.pyc
+.pytest_cache/
 
 # OS
 .DS_Store

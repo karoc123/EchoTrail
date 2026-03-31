@@ -2,11 +2,14 @@
 
 A static travel-journal generator written in Python + Jinja2, with interactive maps powered by [Leaflet](https://leafletjs.com).
 
-Content is kept **completely separate from the generator code** — German journal text lives in `data/`, English code lives everywhere else. The generated site lands in `dist/` (never versioned) and can be uploaded directly to any webspace.
+Content is kept **completely separate from the generator code**. The generated
+site lands in `dist/` (never versioned) and can be deployed to any static
+hosting — including GitHub Pages — via the built-in
+[GitHub Action](#github-action).
 
 ---
 
-## Quick start
+## Quick start (local)
 
 ### 1. Install the generator
 
@@ -14,39 +17,124 @@ Content is kept **completely separate from the generator code** — German journ
 python -m pip install -e ".[markdown]"
 ```
 
-> The optional `markdown` extra installs the `markdown` package for full Markdown rendering.
-> Without it, a built-in minimal renderer handles the most common syntax.
+> The optional `markdown` extra installs the `markdown` package for full
+> Markdown rendering. Without it, a built-in minimal renderer handles the most
+> common syntax.
 
-### 2. Vendor Leaflet (one-time setup)
-
-```bash
-python -m echotrail_gen fetch-vendor
-```
-
-This downloads Leaflet JS/CSS/images into `assets/vendor/leaflet/` so the site works **offline on your webspace** without any CDN dependency.
-
-### 3. Build the site
+### 2. Build the site
 
 ```bash
-python -m echotrail_gen build
+python -m echotrail_gen build --data example_data --fetch-vendor
 ```
 
 | Option | Default | Description |
 |---|---|---|
-| `--data DIR` | `data/` | Root content directory |
-| `--output DIR` | `dist/` | Output directory |
-| `--templates DIR` | `templates/` | Jinja2 templates |
-| `--assets DIR` | `assets/` | Static assets |
+| `--data DIR` | `data` | Root content directory |
+| `--output DIR` | `dist` | Output directory |
+| `--templates DIR` | *(bundled theme)* | Jinja2 templates |
+| `--assets DIR` | *(bundled theme)* | Static assets (CSS etc.) |
+| `--fetch-vendor` | off | Download Leaflet into the output during the build |
 
-The generated site is written to `dist/`. Open `dist/index.html` in a browser to preview locally.
+When `--templates` and `--assets` are omitted the **bundled default theme** is
+used automatically. This means a content-only repository does not need to carry
+any theme files.
 
-### 4. Upload to your webspace
+To fetch Leaflet separately (for caching):
 
-Upload the entire contents of `dist/` to your webspace via FTP/SFTP/rsync, for example:
+```bash
+python -m echotrail_gen fetch-vendor            # downloads to assets/vendor/leaflet/
+python -m echotrail_gen build --data example_data --assets assets
+```
+
+### 3. Deploy
+
+Upload the contents of `dist/` to your webspace, or use the GitHub Action
+described below.
 
 ```bash
 rsync -avz dist/ user@yourserver.de:/path/to/public_html/echotrail/
 ```
+
+---
+
+## GitHub Action
+
+EchoTrail ships as a **composite GitHub Action**. This lets you keep a
+minimal content repository and build + deploy automatically on every push.
+
+### Minimal content repo layout
+
+```
+my-travel-journal/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml
+└── data/
+    └── trips/
+        └── my-trip/
+            ├── title.txt
+            ├── description.md
+            ├── route.geojson
+            └── entries/
+                └── 2025-07-01-oslo/
+                    ├── date.txt
+                    ├── text.md
+                    └── point.geojson
+```
+
+### Example workflow (GitHub Pages)
+
+```yaml
+# .github/workflows/deploy.yml
+name: Build & Deploy EchoTrail
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build with EchoTrail
+        uses: karoc123/EchoTrail@main      # pin to a release tag once available
+        with:
+          data-dir: data
+          # templates-dir and assets-dir default to the bundled theme
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+```
+
+### Action inputs
+
+| Input | Default | Description |
+|---|---|---|
+| `data-dir` | `data` | Content directory |
+| `output-dir` | `dist` | Output directory |
+| `templates-dir` | *(empty → bundled)* | Custom Jinja2 templates |
+| `assets-dir` | *(empty → bundled)* | Custom assets (CSS etc.) |
+| `python-version` | `3.12` | Python version |
+| `fetch-vendor` | `true` | Download Leaflet during the build |
 
 ---
 
@@ -122,39 +210,35 @@ Coordinates are `[longitude, latitude]` (GeoJSON standard).
 
 ```
 EchoTrail/
-├── echotrail_gen/          # Generator package (Python)
+├── echotrail_gen/                  # Generator package (Python)
 │   ├── __init__.py
-│   ├── __main__.py         # python -m echotrail_gen
-│   ├── cli.py              # Argument parsing
-│   ├── builder.py          # Build pipeline
-│   ├── schema.py           # Data loading
-│   ├── geo.py              # GeoJSON / GPX helpers
-│   └── vendor.py           # Leaflet download helper
+│   ├── __main__.py                 # python -m echotrail_gen
+│   ├── cli.py                      # Argument parsing
+│   ├── builder.py                  # Build pipeline
+│   ├── schema.py                   # Data loading
+│   ├── geo.py                      # GeoJSON / GPX helpers
+│   ├── vendor.py                   # Leaflet download helper
+│   ├── default_templates/          # Bundled Jinja2 theme
+│   │   ├── base.html
+│   │   ├── index.html
+│   │   ├── trip.html
+│   │   └── entry.html
+│   └── default_assets/             # Bundled static assets
+│       ├── css/style.css
+│       └── vendor/leaflet/         # Populated by fetch-vendor
 │
-├── data/                   # Your content (German text)
+├── example_data/                   # Example content (for testing/demo)
 │   └── trips/
-│       └── <trip_id>/
-│           ├── title.txt
-│           ├── description.md
-│           ├── odometer_km.txt
-│           ├── route.geojson
-│           └── entries/
-│               └── <entry_id>/
-│                   ├── date.txt
-│                   ├── text.md
-│                   ├── point.geojson
-│                   └── media/
+│       └── example-europe-trip/
 │
-├── templates/              # Jinja2 HTML templates
-│   ├── base.html
-│   ├── index.html          # Trips overview
-│   ├── trip.html           # Trip detail + route map
-│   └── entry.html          # Entry detail + point map
+├── tests/                          # Test suite
+│   ├── conftest.py
+│   ├── test_build.py
+│   ├── test_cli.py
+│   ├── test_geo.py
+│   └── test_schema.py
 │
-├── assets/
-│   ├── css/style.css
-│   └── vendor/leaflet/     # Populated by fetch-vendor
-│
+├── action.yml                      # Composite GitHub Action
 ├── pyproject.toml
 ├── .gitignore
 └── README.md
@@ -164,7 +248,9 @@ EchoTrail/
 
 ## Customising templates
 
-The templates in `templates/` use [Jinja2](https://jinja.palletsprojects.com/) and can be edited freely.
+Override the default theme by passing `--templates` and/or `--assets` pointing
+to your own directories. The templates use
+[Jinja2](https://jinja.palletsprojects.com/) and can be edited freely.
 
 `base.html` defines the shared layout (header, footer, asset paths).
 `index.html`, `trip.html`, and `entry.html` each `{% extends "base.html" %}`.
@@ -229,5 +315,6 @@ To keep build times short, you can pre-convert your GPX files once and commit th
 |---|---|---|
 | `jinja2` | Yes | Template rendering |
 | `markdown` | No (`[markdown]` extra) | Full Markdown rendering |
+| `pytest` | No (`[test]` extra) | Running the test suite |
 
 No external geo libraries are needed — GeoJSON is parsed with the standard `json` module and GPX with `xml.etree.ElementTree`. 
