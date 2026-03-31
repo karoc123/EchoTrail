@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}{{ page_title }}{% endblock %} – EchoTrail</title>
+
+  {# Vendored Leaflet CSS #}
+  <link rel="stylesheet" href="{{ assets_root }}vendor/leaflet/leaflet.css" />
+  {# Site stylesheet #}
+  <link rel="stylesheet" href="{{ assets_root }}css/style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="site-logo" href="{{ root_url }}index.html">EchoTrail</a>
+  </header>
+
+  <main class="site-main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <p>Powered by <a href="https://leafletjs.com">Leaflet</a> &amp; Python/Jinja2.</p>
+  </footer>
+
+  {# Vendored Leaflet JS #}
+  <script src="{{ assets_root }}vendor/leaflet/leaflet.js"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

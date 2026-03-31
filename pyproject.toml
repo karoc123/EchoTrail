@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "echotrail_gen"
+version = "0.1.0"
+description = "Static site generator for EchoTrail travel journals."
+requires-python = ">=3.10"
+dependencies = [
+    "jinja2>=3.1",
+]
+
+[project.optional-dependencies]
+markdown = ["markdown>=3.5"]
+
+[project.scripts]
+echotrail-gen = "echotrail_gen.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["echotrail_gen*"]
