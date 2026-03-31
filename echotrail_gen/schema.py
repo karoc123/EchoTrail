@@ -62,6 +62,7 @@ class Entry(BaseModel):
     id: str
     trip_id: str
     url: str
+    title: str = ""
     date: str
     text_md: str
     country: str = ""
@@ -150,6 +151,8 @@ def _media_files(media_dir: Path) -> list[MediaItem]:
 
 _ENTRY_KNOWN_KEYS = {"date", "country", "weather", "temperature_c", "lat", "lon", "point_name"}
 
+_HEADING_RE = re.compile(r"^#\s+(.+)$", re.MULTILINE)
+
 
 def load_entry(entry_dir: Path, trip_id: str) -> Entry:
     """Load one entry directory and return an Entry model."""
@@ -165,6 +168,10 @@ def load_entry(entry_dir: Path, trip_id: str) -> Entry:
     country = str(meta.get("country", ""))
     weather = str(meta.get("weather", ""))
     temperature_c = str(meta.get("temperature_c", "")) if "temperature_c" in meta else ""
+
+    # Entry title: prefer first # heading from body, then point_name
+    heading_match = _HEADING_RE.search(text_md)
+    title = heading_match.group(1).strip() if heading_match else str(meta.get("point_name", ""))
 
     # Point geometry from front matter lat/lon
     lat = meta.get("lat")
@@ -204,6 +211,7 @@ def load_entry(entry_dir: Path, trip_id: str) -> Entry:
         id=entry_id,
         trip_id=trip_id,
         url=f"trips/{trip_id}/entries/{entry_id}/",
+        title=title,
         date=date,
         text_md=text_md,
         country=country,
