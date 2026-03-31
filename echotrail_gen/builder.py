@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from markupsafe import Markup
 
 from echotrail_gen.schema import load_all_trips
 
@@ -28,7 +29,7 @@ log = logging.getLogger(__name__)
 # Markdown → HTML (minimal, no extra dependency required)
 # ---------------------------------------------------------------------------
 
-def _markdown_to_html(text: str) -> str:
+def _markdown_to_html(text: str) -> Markup:
     """Convert a small subset of Markdown to HTML.
 
     Supports: paragraphs, **bold**, *italic*, `code`, headings (# / ##),
@@ -37,7 +38,7 @@ def _markdown_to_html(text: str) -> str:
     """
     try:
         import markdown as md_lib  # type: ignore[import]
-        return md_lib.markdown(text, extensions=["extra"])
+        return Markup(md_lib.markdown(text, extensions=["extra"]))
     except ModuleNotFoundError:
         pass
 
@@ -113,7 +114,7 @@ def _markdown_to_html(text: str) -> str:
         para_lines.append(inline(line))
 
     flush_para(); flush_ul(); flush_ol()
-    return "\n".join(html_parts)
+    return Markup("\n".join(html_parts))
 
 
 # ---------------------------------------------------------------------------
