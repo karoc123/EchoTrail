@@ -4,7 +4,13 @@
    ============================================================ */
 
 /* ---------- Reset / base ---------------------------------- */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 html {
   font-size: 18px;
@@ -22,16 +28,36 @@ body {
   flex-direction: column;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   line-height: 1.25;
   color: #111;
 }
 
-a { color: #b44000; text-decoration: none; }
-a:hover { text-decoration: underline; }
+a {
+  color: #b44000;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
 
-img, video { max-width: 100%; height: auto; display: block; }
+img,
+video {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
 
 hr {
   border: none;
@@ -46,7 +72,12 @@ hr {
 }
 
 .site-logo {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   font-size: 1rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -68,19 +99,33 @@ hr {
   padding: 1.5rem 1.25rem;
   font-size: 0.78rem;
   color: #999;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
 }
 
 /* ---------- Breadcrumb ------------------------------------ */
 .breadcrumb {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   font-size: 0.8rem;
   color: #888;
   margin-bottom: 1.5rem;
 }
 
-.breadcrumb a { color: #888; }
-.breadcrumb a:hover { color: #b44000; }
+.breadcrumb a {
+  color: #888;
+}
+.breadcrumb a:hover {
+  color: #b44000;
+}
 
 /* ---------- Trips index ----------------------------------- */
 .trips-index h1 {
@@ -100,7 +145,9 @@ hr {
   padding-bottom: 2rem;
 }
 
-.trip-card:last-child { border-bottom: none; }
+.trip-card:last-child {
+  border-bottom: none;
+}
 
 .trip-cover {
   width: 100%;
@@ -116,7 +163,12 @@ hr {
 }
 
 .trip-meta {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   font-size: 0.8rem;
   color: #777;
   margin-bottom: 0.4rem;
@@ -128,9 +180,18 @@ hr {
   margin-top: 0.4rem;
 }
 
-.trip-desc p { margin-bottom: 0.4rem; }
-.trip-desc h1, .trip-desc h2, .trip-desc h3 { display: none; }
-.trip-desc ul, .trip-desc ol { display: none; }
+.trip-desc p {
+  margin-bottom: 0.4rem;
+}
+.trip-desc h1,
+.trip-desc h2,
+.trip-desc h3 {
+  display: none;
+}
+.trip-desc ul,
+.trip-desc ol {
+  display: none;
+}
 
 /* ---------- Trip detail ----------------------------------- */
 .trip-detail h1 {
@@ -144,7 +205,12 @@ hr {
   flex-wrap: wrap;
   gap: 0.5rem 1.2rem;
   margin: 0.5rem 0 1.5rem;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   font-size: 0.82rem;
   color: #666;
 }
@@ -153,12 +219,23 @@ hr {
   margin-bottom: 2rem;
 }
 
-.trip-description p { margin-bottom: 0.75rem; }
-.trip-description h1, .trip-description h2 { margin: 1.5rem 0 0.5rem; font-size: 1.15rem; }
-.trip-description ul, .trip-description ol { margin: 0.5rem 0 0.75rem 1.25rem; }
+.trip-description p {
+  margin-bottom: 0.75rem;
+}
+.trip-description h1,
+.trip-description h2 {
+  margin: 1.5rem 0 0.5rem;
+  font-size: 1.15rem;
+}
+.trip-description ul,
+.trip-description ol {
+  margin: 0.5rem 0 0.75rem 1.25rem;
+}
 
 /* Entry list on trip page */
-.entry-list { margin-top: 2.5rem; }
+.entry-list {
+  margin-top: 2.5rem;
+}
 .entry-list h2 {
   font-size: 1.15rem;
   margin-bottom: 0.75rem;
@@ -166,7 +243,9 @@ hr {
   border-bottom: 2px solid #111;
 }
 
-.entry-list ul { list-style: none; }
+.entry-list ul {
+  list-style: none;
+}
 
 .entry-item {
   padding: 0.6rem 0;
@@ -180,7 +259,12 @@ hr {
 }
 
 .entry-date {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   font-weight: 600;
   font-size: 0.9rem;
 }
@@ -202,7 +286,12 @@ hr {
   flex-wrap: wrap;
   gap: 0.4rem 1rem;
   margin: 0.5rem 0 1.5rem;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   font-size: 0.8rem;
   color: #666;
 }
@@ -211,13 +300,31 @@ hr {
   margin: 1.5rem 0;
 }
 
-.entry-text p { margin-bottom: 0.85rem; }
-.entry-text h1 { font-size: 1.4rem; margin: 1.8rem 0 0.5rem; }
-.entry-text h2 { font-size: 1.15rem; margin: 1.5rem 0 0.4rem; }
-.entry-text h3 { font-size: 1rem; margin: 1.2rem 0 0.3rem; }
-.entry-text ul, .entry-text ol { margin: 0.5rem 0 0.85rem 1.25rem; }
-.entry-text li { margin-bottom: 0.25rem; }
-.entry-text strong { color: #111; }
+.entry-text p {
+  margin-bottom: 0.85rem;
+}
+.entry-text h1 {
+  font-size: 1.4rem;
+  margin: 1.8rem 0 0.5rem;
+}
+.entry-text h2 {
+  font-size: 1.15rem;
+  margin: 1.5rem 0 0.4rem;
+}
+.entry-text h3 {
+  font-size: 1rem;
+  margin: 1.2rem 0 0.3rem;
+}
+.entry-text ul,
+.entry-text ol {
+  margin: 0.5rem 0 0.85rem 1.25rem;
+}
+.entry-text li {
+  margin-bottom: 0.25rem;
+}
+.entry-text strong {
+  color: #111;
+}
 .entry-text code {
   font-size: 0.88em;
   background: #f4f4f4;
@@ -236,7 +343,12 @@ hr {
   margin-top: 2.5rem;
   padding-top: 1rem;
   border-top: 1px solid #e0e0e0;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
   font-size: 0.85rem;
 }
 
@@ -247,8 +359,12 @@ hr {
   margin-bottom: 1.5rem;
 }
 
-.map--route { height: 380px; }
-.map--point { height: 260px; }
+.map--route {
+  height: 380px;
+}
+.map--point {
+  height: 260px;
+}
 
 /* ---------- Media gallery --------------------------------- */
 .media-gallery {
@@ -264,15 +380,24 @@ hr {
   margin-bottom: 1.25rem;
 }
 
-.media-item img, .media-item video {
+.media-item img,
+.media-item video {
   width: 100%;
   border-radius: 4px;
 }
 
 /* ---------- Responsive ------------------------------------ */
 @media (min-width: 600px) {
-  html { font-size: 19px; }
-  .site-main { padding: 2.5rem 1.5rem 4rem; }
-  .map--route { height: 440px; }
-  .map--point { height: 300px; }
+  html {
+    font-size: 19px;
+  }
+  .site-main {
+    padding: 2.5rem 1.5rem 4rem;
+  }
+  .map--route {
+    height: 440px;
+  }
+  .map--point {
+    height: 300px;
+  }
 }
