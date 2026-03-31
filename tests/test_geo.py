@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 
 from echotrail_gen.geo import load_geojson, gpx_to_geojson
+from echotrail_gen.exceptions import GeoProcessingError
 
 
 # ── load_geojson ────────────────────────────────────────────────────────────
@@ -110,3 +111,59 @@ class TestGpxToGeojson:
         p.write_text(gpx, encoding="utf-8")
         result = gpx_to_geojson(p)
         assert result["features"] == []
+
+    def test_invalid_xml_raises_geo_processing_error(self, tmp_path: Path):
+        """Test that malformed XML raises GeoProcessingError."""
+        p = tmp_path / "bad.gpx"
+        p.write_text("<gpx><unclosed>", encoding="utf-8")
+        with pytest.raises(GeoProcessingError, match="Invalid GPX XML"):
+            gpx_to_geojson(p)
+
+    def test_missing_lat_attribute_raises_error(self, tmp_path: Path):
+        """Test that missing lat attribute raises GeoProcessingError."""
+        gpx = textwrap.dedent("""\
+            <?xml version="1.0"?>
+            <gpx version="1.1">
+              <trk>
+                <trkseg>
+                  <trkpt lon="10.0"/>
+                </trkseg>
+              </trk>
+            </gpx>
+        """)
+        p = tmp_path / "no_lat.gpx"
+        p.write_text(gpx, encoding="utf-8")
+        with pytest.raises(GeoProcessingError, match="Invalid track point"):
+            gpx_to_geojson(p)
+
+    def test_invalid_latitude_range_raises_error(self, tmp_path: Path):
+        """Test that latitude outside valid range raises GeoProcessingError."""
+        gpx = textwrap.dedent("""\
+            <?xml version="1.0"?>
+            <gpx version="1.1">
+              <trk>
+                <trkseg>
+                  <trkpt lat="999" lon="10.0"/>
+                </trkseg>
+              </trk>
+            </gpx>
+        """)
+        p = tmp_path / "bad_lat.gpx"
+        p.write_text(gpx, encoding="utf-8")
+        with pytest.raises(GeoProcessingError, match="Invalid latitude.*must be between -90 and 90"):
+            gpx_to_geojson(p)
+
+    def test_invalid_longitude_range_raises_error(self, tmp_path: Path):
+        """Test that longitude outside valid range raises GeoProcessingError."""
+        gpx = textwrap.dedent("""\
+            <?xml version="1.0"?>
+            <gpx version="1.1">
+              <wpt lat="50.0" lon="999">
+                <name>Invalid</name>
+              </wpt>
+            </gpx>
+        """)
+        p = tmp_path / "bad_lon.gpx"
+        p.write_text(gpx, encoding="utf-8")
+        with pytest.raises(GeoProcessingError, match="Invalid waypoint longitude.*must be between -180 and 180"):
+            gpx_to_geojson(p)

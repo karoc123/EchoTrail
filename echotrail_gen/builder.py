@@ -19,6 +19,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markdown import markdown as md_markdown
 from markupsafe import Markup
 
+from echotrail_gen.exceptions import TemplateNotFoundError
 from echotrail_gen.schema import Entry, Trip, load_all_trips
 from echotrail_gen.images import process_entry_media
 
@@ -52,8 +53,20 @@ def _markdown_to_html(text: str) -> Markup:
 
 
 def _write(path: Path, content: str) -> None:
+    """Write content to path atomically to prevent corruption.
+
+    Uses atomic rename to ensure that the file is either fully written
+    or not present at all, preventing partial writes on crashes.
+    """
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
+
+    # Write to temporary file first
+    temp_path = path.with_suffix(path.suffix + ".tmp")
+    temp_path.write_text(content, encoding="utf-8")
+
+    # Atomic rename (POSIX guarantees atomicity)
+    temp_path.replace(path)
+
     log.debug("  wrote %s", path)
 
 
@@ -123,7 +136,7 @@ def build(
 
     # --- Sanity checks ---
     if not tpl_path.is_dir():
-        raise SystemExit(f"Templates directory not found: {tpl_path}")
+        raise TemplateNotFoundError(tpl_path)
     if not fetch_leaflet:
         _check_vendor(custom_assets_path or _bundled_assets())
 

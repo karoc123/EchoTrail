@@ -7,6 +7,8 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
+from echotrail_gen.exceptions import GeoProcessingError
+
 
 def load_geojson(path: Path) -> dict[str, Any]:
     """Load and return a GeoJSON file as a dict."""
@@ -22,8 +24,15 @@ def gpx_to_geojson(path: Path) -> dict[str, Any]:
     Extracts:
     - ``<trk>/<trkseg>/<trkpt>`` track points → LineString feature
     - ``<wpt>`` waypoints → Point features
+
+    Raises:
+        GeoProcessingError: If the GPX file is malformed or contains invalid data
     """
-    tree = ET.parse(path)
+    try:
+        tree = ET.parse(path)
+    except ET.ParseError as e:
+        raise GeoProcessingError(path, f"Invalid GPX XML: {e}") from e
+
     root = tree.getroot()
 
     # GPX namespace may or may not be present
@@ -42,8 +51,18 @@ def gpx_to_geojson(path: Path) -> dict[str, Any]:
         trk_name = trk_name_el.text.strip() if trk_name_el is not None and trk_name_el.text else None
         coords: list[list[float]] = []
         for trkpt in trk.iter(tag("trkpt")):
-            lat = float(trkpt.attrib["lat"])
-            lon = float(trkpt.attrib["lon"])
+            try:
+                lat = float(trkpt.attrib["lat"])
+                lon = float(trkpt.attrib["lon"])
+            except (KeyError, ValueError) as e:
+                raise GeoProcessingError(path, f"Invalid track point: {e}") from e
+
+            # Validate coordinate ranges
+            if not (-90 <= lat <= 90):
+                raise GeoProcessingError(path, f"Invalid latitude {lat}: must be between -90 and 90")
+            if not (-180 <= lon <= 180):
+                raise GeoProcessingError(path, f"Invalid longitude {lon}: must be between -180 and 180")
+
             ele_el = trkpt.find(tag("ele"))
             if ele_el is not None and ele_el.text:
                 coords.append([lon, lat, float(ele_el.text)])
@@ -63,8 +82,18 @@ def gpx_to_geojson(path: Path) -> dict[str, Any]:
 
     # --- Waypoints → Point ---
     for wpt in root.iter(tag("wpt")):
-        lat = float(wpt.attrib["lat"])
-        lon = float(wpt.attrib["lon"])
+        try:
+            lat = float(wpt.attrib["lat"])
+            lon = float(wpt.attrib["lon"])
+        except (KeyError, ValueError) as e:
+            raise GeoProcessingError(path, f"Invalid waypoint: {e}") from e
+
+        # Validate coordinate ranges
+        if not (-90 <= lat <= 90):
+            raise GeoProcessingError(path, f"Invalid waypoint latitude {lat}: must be between -90 and 90")
+        if not (-180 <= lon <= 180):
+            raise GeoProcessingError(path, f"Invalid waypoint longitude {lon}: must be between -180 and 180")
+
         ele_el = wpt.find(tag("ele"))
         name_el = wpt.find(tag("name"))
         desc_el = wpt.find(tag("desc"))

@@ -6,6 +6,8 @@ import logging
 import urllib.request
 from pathlib import Path
 
+from echotrail_gen.exceptions import VendorFetchError
+
 log = logging.getLogger(__name__)
 
 # Leaflet 1.9.4 — update the version constant to upgrade
@@ -31,6 +33,10 @@ GLIGHTBOX_FILES = [
     "css/glightbox.min.css",
 ]
 
+# Network timeout for vendor downloads (in seconds).
+# 30 seconds is generous for small JS/CSS files even on slow connections.
+DOWNLOAD_TIMEOUT = 30
+
 
 def _download_files(base_url: str, files: list[str], vendor_dir: Path) -> None:
     """Download *files* from *base_url* into *vendor_dir*, skipping existing."""
@@ -43,16 +49,12 @@ def _download_files(base_url: str, files: list[str], vendor_dir: Path) -> None:
         url = f"{base_url}/{rel_path}"
         log.info("  fetching: %s → %s", url, dest)
         try:
-            with urllib.request.urlopen(url, timeout=30) as resp:
+            with urllib.request.urlopen(url, timeout=DOWNLOAD_TIMEOUT) as resp:
                 dest.write_bytes(resp.read())
             log.info("  ok: %s (%d bytes)", dest.name, dest.stat().st_size)
         except Exception as exc:
             log.error("  FAILED %s: %s", url, exc)
-            raise SystemExit(
-                f"\nCould not download {url}\n"
-                "Check your internet connection and try again.\n"
-                f"Error: {exc}"
-            ) from exc
+            raise VendorFetchError(url, str(exc)) from exc
 
 
 def fetch_vendor(assets_dir: str = "assets") -> None:

@@ -31,7 +31,7 @@ from pathlib import Path
 from typing import Any, Literal
 
 import tomllib
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from echotrail_gen.images import thumb_name as _thumb_name
 
@@ -180,17 +180,36 @@ def load_entry(entry_dir: Path, trip_id: str) -> Entry:
 
     point_geojson: dict[str, Any] | None = None
     if lat is not None and lon is not None:
-        props: dict[str, Any] = {}
-        if point_name:
-            props["name"] = point_name
-        point_geojson = {
-            "type": "Feature",
-            "geometry": {
-                "type": "Point",
-                "coordinates": [float(lon), float(lat)],
-            },
-            "properties": props,
-        }
+        # Convert and validate coordinates
+        try:
+            lat_float = float(lat)
+            lon_float = float(lon)
+
+            # Validate coordinate ranges
+            if not (-90 <= lat_float <= 90):
+                log.warning(
+                    "Invalid latitude %s in %s: must be between -90 and 90. Skipping coordinates.",
+                    lat_float, entry_dir
+                )
+            elif not (-180 <= lon_float <= 180):
+                log.warning(
+                    "Invalid longitude %s in %s: must be between -180 and 180. Skipping coordinates.",
+                    lon_float, entry_dir
+                )
+            else:
+                props: dict[str, Any] = {}
+                if point_name:
+                    props["name"] = point_name
+                point_geojson = {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [lon_float, lat_float],
+                    },
+                    "properties": props,
+                }
+        except (ValueError, TypeError) as e:
+            log.warning("Invalid coordinates in %s: %s. Skipping.", entry_dir, e)
 
     # Optional meta.json (future-proofing)
     meta_json: dict[str, Any] = {}
