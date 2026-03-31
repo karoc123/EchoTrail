@@ -48,6 +48,15 @@ Upload the entire contents of `dist/` to your webspace via FTP/SFTP/rsync, for e
 rsync -avz dist/ user@yourserver.de:/path/to/public_html/echotrail/
 ```
 
+### 5. Run the tests
+
+```bash
+python -m pip install -e ".[dev,markdown]"
+python -m pytest tests/ -v
+```
+
+Tests run automatically on every push to `main` via [GitHub Actions](.github/workflows/tests.yml).
+
 ---
 
 ## Adding a trip
