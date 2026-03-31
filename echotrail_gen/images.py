@@ -11,12 +11,26 @@ from PIL import Image
 log = logging.getLogger(__name__)
 
 # Maximum dimension (width or height) for each variant.
+# Web-sized images are optimized for modern displays while keeping file size reasonable
+# (typically ~200-300KB for 1600px images with quality=82).
 WEB_MAX_PX = 1600
+
+# Thumbnails are used in gallery grids and should be small and fast-loading
+# (typically <50KB at 400px with quality=75).
 THUMB_MAX_PX = 400
 
-# JPEG quality settings.
+# JPEG quality settings (0-100, where higher = better quality but larger files).
+# 82 provides excellent visual quality with good compression for full-sized images.
 WEB_QUALITY = 82
+
+# Lower quality is acceptable for thumbnails since they're displayed small.
+# 75 provides sufficient quality while minimizing load times in galleries.
 THUMB_QUALITY = 75
+
+# Resampling filter for high-quality downscaling.
+# LANCZOS provides the sharpest results but is slower than simpler filters like BILINEAR.
+# Trade-off: Better visual quality is worth the extra processing time for static site generation.
+RESIZE_FILTER = Image.LANCZOS
 
 # Extensions handled by Pillow for resizing.
 _RESIZABLE_EXTS = {".jpg", ".jpeg", ".png", ".webp"}
@@ -36,7 +50,7 @@ def resize_image(src: Path, dst: Path, max_px: int, quality: int) -> None:
     with Image.open(src) as img:
         img = img.convert("RGB")
         if _needs_resize(img, max_px):
-            img.thumbnail((max_px, max_px), Image.LANCZOS)
+            img.thumbnail((max_px, max_px), RESIZE_FILTER)
         dst.parent.mkdir(parents=True, exist_ok=True)
         img.save(dst, format="JPEG", quality=quality, optimize=True)
 
@@ -82,6 +96,7 @@ def process_entry_media(src_dir: Path, dst_dir: Path) -> None:
                 resize_image(src_file, tn, THUMB_MAX_PX, THUMB_QUALITY)
             except Exception as exc:
                 log.warning("Could not create thumbnail for %s: %s", src_file, exc)
+                # Note: No fallback for thumbnails - gallery will handle missing thumbs
         else:
             # Videos and other files: copy unchanged
             shutil.copy2(src_file, dst_dir / src_file.name)
