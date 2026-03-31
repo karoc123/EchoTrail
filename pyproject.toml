@@ -13,6 +13,7 @@ dependencies = [
 
 [project.optional-dependencies]
 markdown = ["markdown>=3.5"]
+test = ["pytest>=7"]
 
 [project.scripts]
 echotrail-gen = "echotrail_gen.cli:main"
@@ -20,3 +21,10 @@ echotrail-gen = "echotrail_gen.cli:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["echotrail_gen*"]
+
+[tool.setuptools.package-data]
+echotrail_gen = [
+    "default_templates/*.html",
+    "default_assets/**/*",
+    "default_assets/**/.gitkeep",
+]

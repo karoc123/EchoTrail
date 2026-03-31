@@ -2,9 +2,9 @@
   "type": "Feature",
   "geometry": {
     "type": "Point",
-    "coordinates": [14.4376, 50.0755]
+    "coordinates": [13.4050, 52.5200]
   },
   "properties": {
-    "name": "Prag – Altstädter Ring"
+    "name": "Berlin – Starting Point"
   }
 }

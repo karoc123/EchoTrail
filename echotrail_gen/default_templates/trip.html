@@ -6,13 +6,13 @@
 
 {% block content %}
 <article class="trip-detail">
-  <nav class="breadcrumb"><a href="{{ root_url }}index.html">← Alle Touren</a></nav>
+  <nav class="breadcrumb"><a href="{{ root_url }}index.html">← All Trips</a></nav>
 
   <h1>{{ trip.title }}</h1>
 
   <ul class="trip-meta-list">
     {% if trip.odometer_km %}<li>🛣 <strong>{{ trip.odometer_km }} km</strong></li>{% endif %}
-    <li>📍 <strong>{{ trip.entries | length }}</strong> Einträge</li>
+    <li>📍 <strong>{{ trip.entries | length }}</strong> entries</li>
     {% for key, value in trip.extra.items() %}
     <li>{{ key | replace("_", " ") | title }}: {{ value }}</li>
     {% endfor %}
@@ -25,12 +25,12 @@
   {% endif %}
 
   {# Route map #}
-  <div id="trip-map" class="map map--route" aria-label="Streckenkarte"></div>
+  <div id="trip-map" class="map map--route" aria-label="Route map"></div>
 
   {# Entry list with map markers #}
   {% if trip.entries %}
   <section class="entry-list">
-    <h2>Einträge</h2>
+    <h2>Entries</h2>
     <ul>
       {% for entry in trip.entries %}
       <li class="entry-item">

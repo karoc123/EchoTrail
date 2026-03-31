@@ -7,7 +7,7 @@
 {% block content %}
 <article class="entry-detail">
   <nav class="breadcrumb">
-    <a href="{{ root_url }}index.html">Alle Touren</a>
+    <a href="{{ root_url }}index.html">All Trips</a>
     &rsaquo;
     <a href="{{ root_url }}trips/{{ trip.id }}/index.html">{{ trip.title }}</a>
   </nav>
@@ -23,7 +23,7 @@
   </ul>
 
   {# Point map #}
-  <div id="entry-map" class="map map--point" aria-label="Standortkarte"></div>
+  <div id="entry-map" class="map map--point" aria-label="Location map"></div>
 
   {% if entry.text_md %}
   <div class="entry-text">
@@ -34,7 +34,7 @@
   {# Media gallery #}
   {% if entry.media %}
   <section class="media-gallery">
-    <h2>Medien</h2>
+    <h2>Media</h2>
     {% for item in entry.media %}
     {% if item.type == "image" %}
     <figure class="media-item">
@@ -44,7 +44,7 @@
     <figure class="media-item">
       <video controls preload="none">
         <source src="media/{{ item.name }}" />
-        Ihr Browser unterstützt kein HTML5-Video.
+        Your browser does not support HTML5 video.
       </video>
     </figure>
     {% endif %}
@@ -53,7 +53,7 @@
   {% endif %}
 
   <nav class="entry-nav">
-    <a href="{{ root_url }}trips/{{ trip.id }}/index.html">← Zurück zur Tour</a>
+    <a href="{{ root_url }}trips/{{ trip.id }}/index.html">← Back to trip</a>
   </nav>
 </article>
 {% endblock %}

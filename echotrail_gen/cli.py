@@ -29,15 +29,21 @@ def main(argv=None):
     )
     build_parser.add_argument(
         "--templates",
-        default="templates",
+        default=None,
         metavar="DIR",
-        help="Jinja2 templates directory (default: templates/).",
+        help="Jinja2 templates directory (default: bundled theme).",
     )
     build_parser.add_argument(
         "--assets",
-        default="assets",
+        default=None,
         metavar="DIR",
-        help="Assets directory (default: assets/).",
+        help="Assets directory (default: bundled theme).",
+    )
+    build_parser.add_argument(
+        "--fetch-vendor",
+        action="store_true",
+        default=False,
+        help="Download Leaflet vendor files into the output during build.",
     )
 
     fetch_parser = sub.add_parser(
@@ -59,6 +65,7 @@ def main(argv=None):
             output_dir=args.output,
             templates_dir=args.templates,
             assets_dir=args.assets,
+            fetch_leaflet=args.fetch_vendor,
         )
     elif args.command == "fetch-vendor":
         fetch_vendor(assets_dir=args.assets)

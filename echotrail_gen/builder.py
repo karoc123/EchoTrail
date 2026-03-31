@@ -3,7 +3,7 @@
 Usage::
 
     from echotrail_gen.builder import build
-    build(data_dir="data", output_dir="dist", templates_dir="templates", assets_dir="assets")
+    build(data_dir="data", output_dir="dist")
 
 Or via the CLI::
 
@@ -22,6 +22,18 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from echotrail_gen.schema import load_all_trips
 
 log = logging.getLogger(__name__)
+
+_PACKAGE_DIR = Path(__file__).resolve().parent
+
+
+def _bundled_templates() -> Path:
+    """Return the path to the bundled default templates."""
+    return _PACKAGE_DIR / "default_templates"
+
+
+def _bundled_assets() -> Path:
+    """Return the path to the bundled default assets."""
+    return _PACKAGE_DIR / "default_assets"
 
 
 # ---------------------------------------------------------------------------
@@ -160,21 +172,31 @@ def _check_vendor(assets_dir: Path) -> None:
 def build(
     data_dir: str = "data",
     output_dir: str = "dist",
-    templates_dir: str = "templates",
-    assets_dir: str = "assets",
+    templates_dir: str | None = None,
+    assets_dir: str | None = None,
+    fetch_leaflet: bool = False,
 ) -> None:
-    """Build the complete static site into *output_dir*."""
+    """Build the complete static site into *output_dir*.
+
+    When *templates_dir* or *assets_dir* are ``None``, the bundled default
+    templates / assets shipped with the package are used.  This allows a
+    content-only repository to build without carrying its own theme.
+
+    When *fetch_leaflet* is ``True``, Leaflet vendor files are downloaded
+    directly into the output assets directory during the build.
+    """
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
     data_path = Path(data_dir)
     out_path = Path(output_dir)
-    tpl_path = Path(templates_dir)
-    assets_path = Path(assets_dir)
+    tpl_path = Path(templates_dir) if templates_dir else _bundled_templates()
+    assets_path = Path(assets_dir) if assets_dir else _bundled_assets()
 
     # --- Sanity checks ---
     if not tpl_path.is_dir():
         raise SystemExit(f"Templates directory not found: {tpl_path}")
-    _check_vendor(assets_path)
+    if not fetch_leaflet:
+        _check_vendor(assets_path)
 
     # --- Jinja2 environment ---
     env = Environment(
@@ -196,12 +218,18 @@ def build(
     # --- Copy assets ---
     _copy_assets(assets_path, out_path)
 
+    # --- Optionally fetch vendored Leaflet into output ---
+    if fetch_leaflet:
+        from echotrail_gen.vendor import fetch_vendor
+
+        fetch_vendor(assets_dir=str(out_path / "assets"))
+
     # --- Render trips index ---
     _render_trips_index(env, trips, out_path)
 
     # --- Render trip + entry pages ---
     for trip in trips:
-        _render_trip_page(env, trip, out_path)
+        _render_trip_page(env, trip, out_path, data_path)
         for entry in trip["entries"]:
             _render_entry_page(env, trip, entry, out_path)
 
@@ -228,6 +256,7 @@ def _render_trip_page(
     env: Environment,
     trip: dict[str, Any],
     out_path: Path,
+    data_path: Path,
 ) -> None:
     tpl = env.get_template("trip.html")
     html = tpl.render(trip=trip, page_title=trip["title"])
@@ -235,7 +264,7 @@ def _render_trip_page(
     log.info("Rendered trip: %s", trip["id"])
 
     # Copy trip media (cover + entry media)
-    _copy_trip_media(trip, out_path)
+    _copy_trip_media(trip, out_path, data_path)
 
 
 def _render_entry_page(
@@ -252,14 +281,9 @@ def _render_entry_page(
     log.info("  Rendered entry: %s/%s", trip["id"], entry["id"])
 
 
-def _copy_trip_media(trip: dict[str, Any], out_path: Path) -> None:
+def _copy_trip_media(trip: dict[str, Any], out_path: Path, data_path: Path) -> None:
     """Copy trip cover image and all entry media files to dist/."""
-    from pathlib import Path as _P
-
-    # We need the original data path to copy from; reconstruct from URL
-    # Convention: trip["url"] == "trips/<trip_id>/"
-    # We rely on the caller's CWD being the project root.
-    trip_src = _P("data") / "trips" / trip["id"]
+    trip_src = data_path / "trips" / trip["id"]
 
     # Cover
     if trip["cover"]:
