@@ -8,8 +8,6 @@ from pathlib import Path
 
 from PIL import Image
 
-from echotrail_gen.exceptions import ImageProcessingError
-
 log = logging.getLogger(__name__)
 
 # Maximum dimension (width or height) for each variant.

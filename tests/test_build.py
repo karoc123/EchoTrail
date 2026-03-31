@@ -370,7 +370,8 @@ class TestBuildResult:
         assert result.trips_count == 1
         assert result.entries_count == 2
         assert result.output_path == out
-        assert result.warnings == []
+        # warnings is a list (may contain Leaflet vendor warning if not pre-fetched)
+        assert isinstance(result.warnings, list)
 
     def test_build_result_str(self, example_data_dir: Path, tmp_path: Path) -> None:
         """Test BuildResult string representation."""
@@ -379,8 +380,37 @@ class TestBuildResult:
 
         result_str = str(result)
         assert str(out) in result_str
-        assert "1 trip(s)" in result_str
-        assert "2 entrie(s)" in result_str
+        assert "1 trip" in result_str
+        assert "2 entries" in result_str
+
+    def test_build_result_str_singular(self, tmp_path: Path, templates_dir: Path, assets_dir: Path) -> None:
+        """Singular counts should use 'trip' and 'entry' (not 'trips'/'entries')."""
+        data = tmp_path / "data" / "trips" / "solo-trip"
+        data.mkdir(parents=True)
+        (data / "description.md").write_text(
+            "+++\ntitle = 'Solo Trip'\n+++\nOne trip.", encoding="utf-8"
+        )
+        entries_dir = data / "entries" / "day-1"
+        entries_dir.mkdir(parents=True)
+        (entries_dir / "text.md").write_text(
+            "+++\ndate = '2026-01-01'\n+++\nDay one.", encoding="utf-8"
+        )
+        out = tmp_path / "dist"
+
+        result = build(
+            data_dir=str(tmp_path / "data"),
+            output_dir=str(out),
+            templates_dir=str(templates_dir),
+            assets_dir=str(assets_dir),
+        )
+
+        result_str = str(result)
+        # Check the summary line uses singular forms
+        summary_line = [l for l in result_str.splitlines() if "trip" in l][0]
+        assert "1 trip," in summary_line
+        assert "1 entry" in summary_line
+        assert "1 trips" not in summary_line
+        assert "1 entries" not in summary_line
 
     def test_empty_build_result(self, tmp_path: Path, templates_dir: Path, assets_dir: Path) -> None:
         """Test BuildResult for empty data dir."""
@@ -397,3 +427,24 @@ class TestBuildResult:
 
         assert result.trips_count == 0
         assert result.entries_count == 0
+
+    def test_build_warnings_captured(self, tmp_path: Path, templates_dir: Path, assets_dir: Path) -> None:
+        """Warnings emitted during build (e.g. bad GeoJSON) appear in BuildResult.warnings."""
+        data = tmp_path / "data" / "trips" / "warn-trip"
+        data.mkdir(parents=True)
+        (data / "description.md").write_text(
+            "+++\ntitle = 'Warn Trip'\n+++\nTrip.", encoding="utf-8"
+        )
+        # Write a broken GeoJSON file to trigger a log.warning in load_trip
+        (data / "route.geojson").write_text("not valid json", encoding="utf-8")
+        out = tmp_path / "dist"
+
+        result = build(
+            data_dir=str(tmp_path / "data"),
+            output_dir=str(out),
+            templates_dir=str(templates_dir),
+            assets_dir=str(assets_dir),
+        )
+
+        assert len(result.warnings) >= 1
+        assert any("warn-trip" in w or "route.geojson" in w for w in result.warnings)

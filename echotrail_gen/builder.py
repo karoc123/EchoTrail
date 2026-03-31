@@ -29,6 +29,23 @@ log = logging.getLogger(__name__)
 _PACKAGE_DIR = Path(__file__).resolve().parent
 
 
+class _WarningCollector(logging.Handler):
+    """Logging handler that collects WARNING-level messages into a list."""
+
+    def __init__(self) -> None:
+        super().__init__(level=logging.WARNING)
+        self.warnings: list[str] = []
+
+    def emit(self, record: logging.LogRecord) -> None:
+        if record.levelno == logging.WARNING:
+            self.warnings.append(self.format(record))
+
+
+def _pluralize(count: int, singular: str, plural: str) -> str:
+    """Return *singular* when *count* is 1, otherwise *plural*."""
+    return singular if count == 1 else plural
+
+
 # ---------------------------------------------------------------------------
 # Build result
 # ---------------------------------------------------------------------------
@@ -58,7 +75,8 @@ class BuildResult:
         """Human-readable summary of build results."""
         lines = [
             f"Build complete → {self.output_path}/",
-            f"  {self.trips_count} trip(s), {self.entries_count} entrie(s)",
+            f"  {self.trips_count} {_pluralize(self.trips_count, 'trip', 'trips')},"
+            f" {self.entries_count} {_pluralize(self.entries_count, 'entry', 'entries')}",
         ]
         if self.warnings:
             lines.append(f"  {len(self.warnings)} warning(s)")
@@ -170,70 +188,79 @@ def build(
     """
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
-    data_path = Path(data_dir)
-    out_path = Path(output_dir)
-    tpl_path = Path(templates_dir) if templates_dir else _bundled_templates()
-    custom_assets_path = Path(assets_dir) if assets_dir else None
+    # Collect all WARNING-level log messages emitted during the build
+    warning_collector = _WarningCollector()
+    root_logger = logging.getLogger()
+    root_logger.addHandler(warning_collector)
 
-    # --- Sanity checks ---
-    if not tpl_path.is_dir():
-        raise TemplateNotFoundError(tpl_path)
-    if not fetch_leaflet:
-        _check_vendor(custom_assets_path or _bundled_assets())
+    try:
+        data_path = Path(data_dir)
+        out_path = Path(output_dir)
+        tpl_path = Path(templates_dir) if templates_dir else _bundled_templates()
+        custom_assets_path = Path(assets_dir) if assets_dir else None
 
-    # --- Jinja2 environment ---
-    env = Environment(
-        loader=FileSystemLoader(str(tpl_path)),
-        autoescape=select_autoescape(["html"]),
-    )
-    env.globals["markdown"] = _markdown_to_html
+        # --- Sanity checks ---
+        if not tpl_path.is_dir():
+            raise TemplateNotFoundError(tpl_path)
+        if not fetch_leaflet:
+            _check_vendor(custom_assets_path or _bundled_assets())
 
-    # --- Load data ---
-    log.info("Loading content from %s …", data_path)
-    trips = load_all_trips(data_path)
-    log.info("Found %d trip(s).", len(trips))
+        # --- Jinja2 environment ---
+        env = Environment(
+            loader=FileSystemLoader(str(tpl_path)),
+            autoescape=select_autoescape(["html"]),
+        )
+        env.globals["markdown"] = _markdown_to_html
 
-    # --- Clean output directory ---
-    if out_path.exists():
-        shutil.rmtree(out_path)
-    out_path.mkdir(parents=True)
+        # --- Load data ---
+        log.info("Loading content from %s …", data_path)
+        trips = load_all_trips(data_path)
+        log.info("Found %d trip(s).", len(trips))
 
-    # --- Copy assets ---
-    _copy_assets(_bundled_assets(), out_path, custom_assets=custom_assets_path)
+        # --- Clean output directory ---
+        if out_path.exists():
+            shutil.rmtree(out_path)
+        out_path.mkdir(parents=True)
 
-    # --- Optionally fetch vendored Leaflet into output ---
-    if fetch_leaflet:
-        from echotrail_gen.vendor import fetch_vendor
+        # --- Copy assets ---
+        _copy_assets(_bundled_assets(), out_path, custom_assets=custom_assets_path)
 
-        fetch_vendor(assets_dir=str(out_path / "assets"))
+        # --- Optionally fetch vendored Leaflet into output ---
+        if fetch_leaflet:
+            from echotrail_gen.vendor import fetch_vendor
 
-    # --- Render trips index ---
-    _render_trips_index(env, trips, out_path)
+            fetch_vendor(assets_dir=str(out_path / "assets"))
 
-    # --- Render trip + entry pages ---
-    entries_count = 0
-    for trip in trips:
-        _render_trip_page(env, trip, out_path)
-        entries_count += len(trip.entries)
-        for index, entry in enumerate(trip.entries):
-            prev_entry = trip.entries[index - 1] if index > 0 else None
-            next_entry = trip.entries[index + 1] if index + 1 < len(trip.entries) else None
-            _render_entry_page(
-                env,
-                trip,
-                entry,
-                out_path,
-                prev_entry=prev_entry,
-                next_entry=next_entry,
-            )
+        # --- Render trips index ---
+        _render_trips_index(env, trips, out_path)
 
-    log.info("Build complete → %s/", out_path)
+        # --- Render trip + entry pages ---
+        entries_count = 0
+        for trip in trips:
+            _render_trip_page(env, trip, out_path)
+            entries_count += len(trip.entries)
+            for index, entry in enumerate(trip.entries):
+                prev_entry = trip.entries[index - 1] if index > 0 else None
+                next_entry = trip.entries[index + 1] if index + 1 < len(trip.entries) else None
+                _render_entry_page(
+                    env,
+                    trip,
+                    entry,
+                    out_path,
+                    prev_entry=prev_entry,
+                    next_entry=next_entry,
+                )
 
-    return BuildResult(
-        trips_count=len(trips),
-        entries_count=entries_count,
-        output_path=out_path,
-    )
+        log.info("Build complete → %s/", out_path)
+
+        return BuildResult(
+            trips_count=len(trips),
+            entries_count=entries_count,
+            output_path=out_path,
+            warnings=list(warning_collector.warnings),
+        )
+    finally:
+        root_logger.removeHandler(warning_collector)
 
 
 # ---------------------------------------------------------------------------
