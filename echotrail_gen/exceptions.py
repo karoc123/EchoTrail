@@ -9,6 +9,11 @@ from __future__ import annotations
 from pathlib import Path
 
 
+def _display_path(path: Path) -> str:
+    """Render paths consistently across platforms for user-facing messages."""
+    return path.as_posix()
+
+
 class EchoTrailError(Exception):
     """Base exception for all EchoTrail-specific errors."""
 
@@ -26,7 +31,7 @@ class ImageProcessingError(EchoTrailError):
     def __init__(self, path: Path, reason: str):
         self.path = path
         self.reason = reason
-        super().__init__(f"Failed to process image {path}: {reason}")
+        super().__init__(f"Failed to process image {_display_path(path)}: {reason}")
 
 
 class GeoProcessingError(EchoTrailError):
@@ -40,7 +45,7 @@ class GeoProcessingError(EchoTrailError):
     def __init__(self, path: Path, reason: str):
         self.path = path
         self.reason = reason
-        super().__init__(f"Failed to process geo file {path}: {reason}")
+        super().__init__(f"Failed to process geo file {_display_path(path)}: {reason}")
 
 
 class TemplateNotFoundError(EchoTrailError):
@@ -52,7 +57,7 @@ class TemplateNotFoundError(EchoTrailError):
 
     def __init__(self, template_dir: Path):
         self.template_dir = template_dir
-        super().__init__(f"Templates directory not found: {template_dir}")
+        super().__init__(f"Templates directory not found: {_display_path(template_dir)}")
 
 
 class VendorFetchError(EchoTrailError):
