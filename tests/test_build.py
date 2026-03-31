@@ -162,7 +162,10 @@ class TestBuildIntegration:
         html = self._read(
             "trips", "2026-test-tour", "entries", "2026-03-31-berlin", "index.html"
         )
-        assert '<img src="media/foto1.jpg"' in html
+        # Thumbnails in the gallery grid link to full images via GLightbox
+        assert 'class="glightbox' in html
+        assert 'href="media/foto1.jpg"' in html
+        assert 'src="media/thumb_foto1.jpg"' in html
         assert "<video" in html
         assert "clip.mp4" in html
 
@@ -171,7 +174,19 @@ class TestBuildIntegration:
             self.dist / "trips" / "2026-test-tour" / "entries" / "2026-03-31-berlin" / "media"
         )
         assert (media_dir / "foto1.jpg").exists()
+        assert (media_dir / "thumb_foto1.jpg").exists()
         assert (media_dir / "clip.mp4").exists()
+
+    # -- Layout order: gallery → text → map --
+
+    def test_entry_layout_order(self):
+        html = self._read(
+            "trips", "2026-test-tour", "entries", "2026-03-31-berlin", "index.html"
+        )
+        gallery_pos = html.index("gallery-grid")
+        text_pos = html.index("entry-text")
+        map_pos = html.index("entry-map")
+        assert gallery_pos < text_pos < map_pos
 
     # -- entry.html (Prague – minimal) --
 
@@ -180,7 +195,7 @@ class TestBuildIntegration:
             "trips", "2026-test-tour", "entries", "2026-04-05-prague", "index.html"
         )
         assert "Prague in the Morning Light" in html
-        assert "media-gallery" not in html
+        assert "gallery-grid" not in html
 
     # -- Breadcrumb navigation --
 
@@ -247,6 +262,26 @@ class TestBuildWithBundledDefaults:
 
         index_html = (out / "index.html").read_text()
         assert "My Custom Trips" in index_html
+
+    def test_custom_assets_overlay_preserves_bundled_css(
+        self, example_data_dir: Path, tmp_path: Path
+    ) -> None:
+        """--assets should overlay on top of bundled defaults, not replace them."""
+        custom_assets = tmp_path / "my_assets" / "vendor" / "leaflet"
+        custom_assets.mkdir(parents=True)
+        (custom_assets / "leaflet.js").write_text("/* custom */", encoding="utf-8")
+
+        out = tmp_path / "dist"
+        build(
+            data_dir=str(example_data_dir),
+            output_dir=str(out),
+            assets_dir=str(tmp_path / "my_assets"),
+        )
+
+        # Bundled CSS must still be present
+        assert (out / "assets" / "css" / "style.css").is_file()
+        # Custom vendor file should have overridden the bundled stub
+        assert (out / "assets" / "vendor" / "leaflet" / "leaflet.js").read_text() == "/* custom */"
 
 
 # ── Edge cases ──────────────────────────────────────────────────────────────

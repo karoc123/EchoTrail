@@ -33,6 +33,8 @@ from typing import Any, Literal
 import tomllib
 from pydantic import BaseModel, ConfigDict
 
+from echotrail_gen.images import thumb_name as _thumb_name
+
 from echotrail_gen.geo import gpx_to_geojson, load_geojson
 
 log = logging.getLogger(__name__)
@@ -49,6 +51,7 @@ class MediaItem(BaseModel):
 
     type: Literal["image", "video"]
     name: str
+    thumb_name: str = ""
 
 
 class Entry(BaseModel):
@@ -135,7 +138,7 @@ def _media_files(media_dir: Path) -> list[MediaItem]:
     for p in sorted(media_dir.iterdir()):
         ext = p.suffix.lower()
         if ext in _IMAGE_EXTS:
-            files.append(MediaItem(type="image", name=p.name))
+            files.append(MediaItem(type="image", name=p.name, thumb_name=_thumb_name(p.name)))
         elif ext in _VIDEO_EXTS:
             files.append(MediaItem(type="video", name=p.name))
     return files

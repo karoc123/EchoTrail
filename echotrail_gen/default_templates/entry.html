@@ -1,10 +1,4 @@
-{% set assets_root = "../../../../assets/" %}
-{% set root_url = "../../../../" %}
-{% extends "base.html" %}
-
-{% block title %}{{ entry.date }} – {{ trip.title }}{% endblock %}
-
-{% block content %}
+{% set assets_root = "../../../../assets/" %} {% set root_url = "../../../../" %} {% extends "base.html" %} {% block title %}{{ entry.date }} – {{ trip.title }}{% endblock %} {% block content %}
 <article class="entry-detail">
   <nav class="breadcrumb">
     <a href="{{ root_url }}index.html">All Trips</a>
@@ -15,74 +9,77 @@
   <h1>{{ entry.date }}{% if entry.country %} &mdash; {{ entry.country }}{% endif %}</h1>
 
   <ul class="entry-meta-list">
-    {% if entry.weather %}<li>🌤 {{ entry.weather }}</li>{% endif %}
-    {% if entry.temperature_c %}<li>🌡 {{ entry.temperature_c }}°C</li>{% endif %}
-    {% for key, value in entry.extra.items() %}
+    {% if entry.weather %}
+    <li>🌤 {{ entry.weather }}</li>
+    {% endif %} {% if entry.temperature_c %}
+    <li>🌡 {{ entry.temperature_c }}°C</li>
+    {% endif %} {% for key, value in entry.extra.items() %}
     <li>{{ key | replace("_", " ") | title }}: {{ value }}</li>
     {% endfor %}
   </ul>
 
-  {# Point map #}
-  <div id="entry-map" class="map map--point" aria-label="Location map"></div>
-
-  {% if entry.text_md %}
-  <div class="entry-text">
-    {{ markdown(entry.text_md) }}
-  </div>
-  {% endif %}
-
-  {# Media gallery #}
-  {% if entry.media %}
+  {# Media gallery (thumbnails with lightbox) #} {% if entry.media %}
   <section class="media-gallery">
-    <h2>Media</h2>
-    {% for item in entry.media %}
-    {% if item.type == "image" %}
-    <figure class="media-item">
-      <img src="media/{{ item.name }}" alt="{{ item.name }}" loading="lazy" />
-    </figure>
-    {% elif item.type == "video" %}
-    <figure class="media-item">
-      <video controls preload="none">
-        <source src="media/{{ item.name }}" />
-        Your browser does not support HTML5 video.
-      </video>
-    </figure>
-    {% endif %}
-    {% endfor %}
+    <div class="gallery-grid">
+      {% for item in entry.media %} {% if item.type == "image" %}
+      <a href="media/{{ item.name }}" class="glightbox gallery-thumb" data-gallery="entry-gallery">
+        <img src="media/{{ item.thumb_name }}" alt="{{ item.name }}" loading="lazy" />
+      </a>
+      {% elif item.type == "video" %}
+      <figure class="gallery-video">
+        <video controls preload="none">
+          <source src="media/{{ item.name }}" />
+          Your browser does not support HTML5 video.
+        </video>
+      </figure>
+      {% endif %} {% endfor %}
+    </div>
   </section>
-  {% endif %}
+  {% endif %} {% if entry.text_md %}
+  <div class="entry-text">{{ markdown(entry.text_md) }}</div>
+  {% endif %} {# Point map #}
+  <div id="entry-map" class="map map--point" aria-label="Location map"></div>
 
   <nav class="entry-nav">
     <a href="{{ root_url }}trips/{{ trip.id }}/index.html">← Back to trip</a>
   </nav>
 </article>
-{% endblock %}
-
-{% block scripts %}
+{% endblock %} {% block scripts %}
 <script>
-(function () {
-  var pointGeoJSON = {{ entry.point_geojson_json | safe }};
+  (function () {
+    /* --- GLightbox gallery --- */
+    if (typeof GLightbox !== "undefined") {
+      GLightbox({
+        selector: ".glightbox",
+        loop: true,
+        touchNavigation: true,
+        closeOnOutsideClick: true
+      });
+    }
 
-  var map = L.map("entry-map");
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    maxZoom: 18
-  }).addTo(map);
+    /* --- Leaflet map --- */
+    var pointGeoJSON = {{ entry.point_geojson_json | safe }};
 
-  if (pointGeoJSON) {
-    var coords = pointGeoJSON.geometry
-      ? pointGeoJSON.geometry.coordinates
-      : (pointGeoJSON.coordinates || null);
-    if (coords) {
-      var latlng = [coords[1], coords[0]];
-      L.marker(latlng).addTo(map);
-      map.setView(latlng, 13);
+    var map = L.map("entry-map");
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 18
+    }).addTo(map);
+
+    if (pointGeoJSON) {
+      var coords = pointGeoJSON.geometry
+        ? pointGeoJSON.geometry.coordinates
+        : (pointGeoJSON.coordinates || null);
+      if (coords) {
+        var latlng = [coords[1], coords[0]];
+        L.marker(latlng).addTo(map);
+        map.setView(latlng, 13);
+      } else {
+        map.setView([51, 10], 5);
+      }
     } else {
       map.setView([51, 10], 5);
     }
-  } else {
-    map.setView([51, 10], 5);
-  }
-})();
+  })();
 </script>
 {% endblock %}
