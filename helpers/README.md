@@ -29,16 +29,16 @@ python helpers/findpenguins_scraper.py https://findpenguins.com/karoc/trip/winte
 This will create a folder structure at:
 
 ```
-imported/trip/winter-is-coming/
-├── description.md          # Trip metadata and description
+imported/trips/winter-is-coming/
+├── description.md          # Trip metadata, source info, and description
 ├── import_summary.json     # Summary of the import process
 └── entries/
-    ├── 2025-01-15-entry-title/
-    │   ├── text.md         # Entry content with TOML front matter
+  ├── 2025-11-10-entry-title/
+  │   ├── text.md         # Entry content with TOML front matter and Markdown body
     │   └── media/
-    │       ├── image_001.jpg
-    │       └── image_002.jpg
-    └── 2025-01-16-another-entry/
+  │       ├── original-photo-name.jpg
+  │       └── another-photo-name.jpg
+  └── 2025-11-13-another-entry/
         └── text.md
 ```
 
@@ -53,7 +53,7 @@ imported/trip/winter-is-coming/
 # Basic usage
 python helpers/findpenguins_scraper.py https://findpenguins.com/username/trip/my-trip
 
-# Output to a different directory
+# Output to a different base directory
 python helpers/findpenguins_scraper.py https://findpenguins.com/username/trip/my-trip --output data
 
 # Verbose output for debugging
@@ -67,26 +67,38 @@ The scraper attempts to extract:
 - **Trip level:**
   - Title
   - Description
-  - Cover image (if available)
+  - Source metadata (`source`, `source_url`)
 
 - **Entry level:**
   - Date
   - Title
-  - Content (text/markdown)
+  - Content converted to Markdown body
   - Location/country information
   - GPS coordinates (if available)
+  - Weather and temperature (if available)
   - Images and photos
 
 ### Integration with EchoTrail
 
-After scraping, you can move the imported content to your data directory:
+The generated structure is already compatible with EchoTrail's expected `data/trips/...` layout.
+
+You can build directly from the imported directory:
 
 ```bash
-# Move the scraped trip to your data directory
-mv imported/trip/winter-is-coming data/trips/
+python -m echotrail_gen build --data imported --assets assets
+```
 
-# Build your site
-python -m echotrail_gen build --data data --fetch-vendor
+If you want to merge the imported trip into an existing `data` directory, move or copy the trip folder under `data/trips/`:
+
+```bash
+# PowerShell
+Move-Item imported/trips/winter-is-coming data/trips/
+
+# bash
+mv imported/trips/winter-is-coming data/trips/
+
+# Build from your main data directory
+python -m echotrail_gen build --data data --assets assets
 ```
 
 ### Limitations
@@ -109,5 +121,6 @@ If the scraper fails or produces incomplete results:
 
 - The scraper is respectful and includes appropriate delays between requests
 - Images are downloaded to preserve the complete trip
-- All original metadata is preserved in the front matter
+- Entry files include a Markdown heading, which EchoTrail uses as the entry title
+- The front matter preserves extracted metadata such as `country`, `weather`, `temperature_c`, and `point_name` when available
 - The source URL is recorded in the trip description for reference

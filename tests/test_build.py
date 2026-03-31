@@ -206,6 +206,22 @@ class TestBuildIntegration:
         assert "All Trips" in html
         assert "Test-Tour 2026" in html
 
+    def test_entry_prev_next_navigation(self):
+        berlin_html = self._read(
+            "trips", "2026-test-tour", "entries", "2026-03-31-berlin", "index.html"
+        )
+        prague_html = self._read(
+            "trips", "2026-test-tour", "entries", "2026-04-05-prague", "index.html"
+        )
+
+        assert 'href="../2026-04-05-prague/index.html"' in berlin_html
+        assert "Prague in the Morning Light →" in berlin_html
+        assert 'href="../2026-03-31-berlin/index.html"' not in berlin_html
+
+        assert 'href="../2026-03-31-berlin/index.html"' in prague_html
+        assert "← Departure from Berlin" in prague_html
+        assert 'href="../2026-04-05-prague/index.html"' not in prague_html
+
     # -- Assets --
 
     def test_assets_copied(self):
