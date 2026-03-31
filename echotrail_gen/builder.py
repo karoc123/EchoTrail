@@ -20,6 +20,7 @@ from markdown import markdown as md_markdown
 from markupsafe import Markup
 
 from echotrail_gen.schema import Entry, Trip, load_all_trips
+from echotrail_gen.images import process_entry_media
 
 log = logging.getLogger(__name__)
 
@@ -56,17 +57,28 @@ def _write(path: Path, content: str) -> None:
     log.debug("  wrote %s", path)
 
 
-def _copy_assets(assets_dir: Path, output_dir: Path) -> None:
-    """Copy the entire assets/ tree to dist/assets/."""
-    src = assets_dir
+def _copy_assets(
+    assets_dir: Path, output_dir: Path, *, custom_assets: Path | None = None
+) -> None:
+    """Copy bundled + optional custom assets into ``dist/assets/``.
+
+    The bundled default assets are always copied first.  When *custom_assets*
+    is given, its contents are overlaid on top so that custom files (e.g.
+    pre-fetched vendor libs) win while bundled files like ``css/style.css``
+    are preserved.
+    """
     dst = output_dir / "assets"
-    if not src.is_dir():
-        log.warning("Assets directory not found: %s — skipping.", src)
-        return
     if dst.exists():
         shutil.rmtree(dst)
-    shutil.copytree(src, dst)
-    log.info("Copied assets → %s", dst)
+
+    # 1) Always start with the bundled defaults
+    shutil.copytree(assets_dir, dst)
+    log.info("Copied bundled assets → %s", dst)
+
+    # 2) Overlay custom assets on top (if provided)
+    if custom_assets and custom_assets.is_dir():
+        shutil.copytree(custom_assets, dst, dirs_exist_ok=True)
+        log.info("Overlaid custom assets from %s", custom_assets)
 
 
 def _check_vendor(assets_dir: Path) -> None:
@@ -107,13 +119,13 @@ def build(
     data_path = Path(data_dir)
     out_path = Path(output_dir)
     tpl_path = Path(templates_dir) if templates_dir else _bundled_templates()
-    assets_path = Path(assets_dir) if assets_dir else _bundled_assets()
+    custom_assets_path = Path(assets_dir) if assets_dir else None
 
     # --- Sanity checks ---
     if not tpl_path.is_dir():
         raise SystemExit(f"Templates directory not found: {tpl_path}")
     if not fetch_leaflet:
-        _check_vendor(assets_path)
+        _check_vendor(custom_assets_path or _bundled_assets())
 
     # --- Jinja2 environment ---
     env = Environment(
@@ -133,7 +145,7 @@ def build(
     out_path.mkdir(parents=True)
 
     # --- Copy assets ---
-    _copy_assets(assets_path, out_path)
+    _copy_assets(_bundled_assets(), out_path, custom_assets=custom_assets_path)
 
     # --- Optionally fetch vendored Leaflet into output ---
     if fetch_leaflet:
@@ -196,7 +208,7 @@ def _copy_trip_media(trip: Trip, out_path: Path) -> None:
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dst)
 
-    # Entry media
+    # Entry media (resize images + generate thumbnails)
     for entry in trip.entries:
         entry_src = trip_src / "entries" / entry.id / "media"
         if not entry_src.is_dir():
@@ -204,4 +216,4 @@ def _copy_trip_media(trip: Trip, out_path: Path) -> None:
         entry_dst = out_path / "trips" / trip.id / "entries" / entry.id / "media"
         if entry_dst.exists():
             shutil.rmtree(entry_dst)
-        shutil.copytree(entry_src, entry_dst)
+        process_entry_media(entry_src, entry_dst)

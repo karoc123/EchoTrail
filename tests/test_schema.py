@@ -67,8 +67,11 @@ class TestMediaFiles:
         result = _media_files(media)
         assert len(result) == 3
         assert result[0].type == "image" and result[0].name == "a.jpg"
+        assert result[0].thumb_name == "thumb_a.jpg"
         assert result[1].type == "video" and result[1].name == "b.mp4"
+        assert result[1].thumb_name == ""
         assert result[2].type == "image" and result[2].name == "c.png"
+        assert result[2].thumb_name == "thumb_c.jpg"
 
     def test_nonexistent_dir(self, tmp_path: Path):
         result = _media_files(tmp_path / "nope")

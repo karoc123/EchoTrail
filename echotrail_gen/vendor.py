@@ -1,4 +1,4 @@
-"""Download vendored third-party assets (Leaflet) into assets/vendor/."""
+"""Download vendored third-party assets (Leaflet, GLightbox) into assets/vendor/."""
 
 from __future__ import annotations
 
@@ -22,22 +22,25 @@ LEAFLET_FILES = [
     "images/marker-shadow.png",
 ]
 
+# GLightbox 3.3.0
+GLIGHTBOX_VERSION = "3.3.0"
+GLIGHTBOX_BASE_URL = f"https://cdn.jsdelivr.net/npm/glightbox@{GLIGHTBOX_VERSION}/dist"
 
-def fetch_vendor(assets_dir: str = "assets") -> None:
-    """Download Leaflet into ``<assets_dir>/vendor/leaflet/``.
+GLIGHTBOX_FILES = [
+    "js/glightbox.min.js",
+    "css/glightbox.min.css",
+]
 
-    Safe to re-run: existing files are skipped unless they are empty.
-    """
-    vendor_dir = Path(assets_dir) / "vendor" / "leaflet"
-    vendor_dir.mkdir(parents=True, exist_ok=True)
-    (vendor_dir / "images").mkdir(exist_ok=True)
 
-    for rel_path in LEAFLET_FILES:
+def _download_files(base_url: str, files: list[str], vendor_dir: Path) -> None:
+    """Download *files* from *base_url* into *vendor_dir*, skipping existing."""
+    for rel_path in files:
         dest = vendor_dir / rel_path
+        dest.parent.mkdir(parents=True, exist_ok=True)
         if dest.exists() and dest.stat().st_size > 0:
             log.info("  skip (exists): %s", dest)
             continue
-        url = f"{LEAFLET_BASE_URL}/{rel_path}"
+        url = f"{base_url}/{rel_path}"
         log.info("  fetching: %s → %s", url, dest)
         try:
             with urllib.request.urlopen(url, timeout=30) as resp:
@@ -51,6 +54,21 @@ def fetch_vendor(assets_dir: str = "assets") -> None:
                 f"Error: {exc}"
             ) from exc
 
-    print(
-        f"Leaflet {LEAFLET_VERSION} vendored successfully into {vendor_dir}."
-    )
+
+def fetch_vendor(assets_dir: str = "assets") -> None:
+    """Download Leaflet and GLightbox into ``<assets_dir>/vendor/``.
+
+    Safe to re-run: existing files are skipped unless they are empty.
+    """
+    # --- Leaflet ---
+    leaflet_dir = Path(assets_dir) / "vendor" / "leaflet"
+    leaflet_dir.mkdir(parents=True, exist_ok=True)
+    (leaflet_dir / "images").mkdir(exist_ok=True)
+    _download_files(LEAFLET_BASE_URL, LEAFLET_FILES, leaflet_dir)
+    print(f"Leaflet {LEAFLET_VERSION} vendored successfully into {leaflet_dir}.")
+
+    # --- GLightbox ---
+    glightbox_dir = Path(assets_dir) / "vendor" / "glightbox"
+    glightbox_dir.mkdir(parents=True, exist_ok=True)
+    _download_files(GLIGHTBOX_BASE_URL, GLIGHTBOX_FILES, glightbox_dir)
+    print(f"GLightbox {GLIGHTBOX_VERSION} vendored successfully into {glightbox_dir}.")

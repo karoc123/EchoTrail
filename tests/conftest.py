@@ -8,9 +8,17 @@ import textwrap
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 EXAMPLE_DATA = REPO_ROOT / "example_data"
+
+
+def _create_test_jpeg(path: Path, width: int = 800, height: int = 600) -> None:
+    """Create a minimal real JPEG so Pillow can process it."""
+    img = Image.new("RGB", (width, height), color=(120, 180, 60))
+    path.parent.mkdir(parents=True, exist_ok=True)
+    img.save(path, format="JPEG", quality=80)
 
 
 # ---------------------------------------------------------------------------
@@ -49,6 +57,11 @@ def assets_dir(tmp_path: Path) -> Path:
     (vendor / "leaflet.js").write_text("/* stub */", encoding="utf-8")
     (vendor / "leaflet.css").write_text("/* stub */", encoding="utf-8")
     (vendor / "images").mkdir()
+    glightbox = assets / "vendor" / "glightbox"
+    (glightbox / "js").mkdir(parents=True)
+    (glightbox / "css").mkdir(parents=True)
+    (glightbox / "js" / "glightbox.min.js").write_text("/* stub */", encoding="utf-8")
+    (glightbox / "css" / "glightbox.min.css").write_text("/* stub */", encoding="utf-8")
     return assets
 
 
@@ -142,7 +155,7 @@ def data_dir(tmp_path: Path) -> Path:
     (entry_berlin / "text.md").write_text(SAMPLE_ENTRY_BERLIN, encoding="utf-8")
     media = entry_berlin / "media"
     media.mkdir()
-    (media / "foto1.jpg").write_bytes(b"\xff\xd8fake-jpg")
+    _create_test_jpeg(media / "foto1.jpg", 2000, 1500)
     (media / "clip.mp4").write_bytes(b"\x00\x00fake-mp4")
 
     # Prague entry (no media)
