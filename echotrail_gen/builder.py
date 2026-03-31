@@ -15,11 +15,11 @@ from __future__ import annotations
 import logging
 import shutil
 from pathlib import Path
-from typing import Any
-
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+from markdown import markdown as md_markdown
+from markupsafe import Markup
 
-from echotrail_gen.schema import load_all_trips
+from echotrail_gen.schema import Entry, Trip, load_all_trips
 
 log = logging.getLogger(__name__)
 
@@ -37,95 +37,12 @@ def _bundled_assets() -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Markdown → HTML (minimal, no extra dependency required)
+# Markdown → HTML
 # ---------------------------------------------------------------------------
 
-def _markdown_to_html(text: str) -> str:
-    """Convert a small subset of Markdown to HTML.
-
-    Supports: paragraphs, **bold**, *italic*, `code`, headings (# / ##),
-    unordered lists (- item), ordered lists (1. item), and line breaks.
-    For richer Markdown, install ``markdown`` or ``mistune`` and replace this.
-    """
-    try:
-        import markdown as md_lib  # type: ignore[import]
-        return md_lib.markdown(text, extensions=["extra"])
-    except ModuleNotFoundError:
-        pass
-
-    import re
-    lines = text.splitlines()
-    html_parts: list[str] = []
-    in_ul = False
-    in_ol = False
-    para_lines: list[str] = []
-
-    def flush_para() -> None:
-        nonlocal para_lines
-        if para_lines:
-            content = " ".join(para_lines).strip()
-            if content:
-                html_parts.append(f"<p>{content}</p>")
-            para_lines = []
-
-    def flush_ul() -> None:
-        nonlocal in_ul
-        if in_ul:
-            html_parts.append("</ul>")
-            in_ul = False
-
-    def flush_ol() -> None:
-        nonlocal in_ol
-        if in_ol:
-            html_parts.append("</ol>")
-            in_ol = False
-
-    def inline(s: str) -> str:
-        s = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", s)
-        s = re.sub(r"\*(.+?)\*", r"<em>\1</em>", s)
-        s = re.sub(r"`(.+?)`", r"<code>\1</code>", s)
-        return s
-
-    for line in lines:
-        # Headings
-        m = re.match(r"^(#{1,6})\s+(.*)", line)
-        if m:
-            flush_para(); flush_ul(); flush_ol()
-            level = len(m.group(1))
-            html_parts.append(f"<h{level}>{inline(m.group(2))}</h{level}>")
-            continue
-
-        # Unordered list
-        m = re.match(r"^[-*+]\s+(.*)", line)
-        if m:
-            flush_para(); flush_ol()
-            if not in_ul:
-                html_parts.append("<ul>")
-                in_ul = True
-            html_parts.append(f"<li>{inline(m.group(1))}</li>")
-            continue
-
-        # Ordered list
-        m = re.match(r"^\d+\.\s+(.*)", line)
-        if m:
-            flush_para(); flush_ul()
-            if not in_ol:
-                html_parts.append("<ol>")
-                in_ol = True
-            html_parts.append(f"<li>{inline(m.group(1))}</li>")
-            continue
-
-        # Blank line → close lists / paragraph
-        if not line.strip():
-            flush_para(); flush_ul(); flush_ol()
-            continue
-
-        # Normal paragraph line
-        flush_ul(); flush_ol()
-        para_lines.append(inline(line))
-
-    flush_para(); flush_ul(); flush_ol()
-    return "\n".join(html_parts)
+def _markdown_to_html(text: str) -> Markup:
+    """Render Markdown using the dedicated library."""
+    return Markup(md_markdown(text, extensions=["extra"]))
 
 
 # ---------------------------------------------------------------------------
@@ -229,8 +146,8 @@ def build(
 
     # --- Render trip + entry pages ---
     for trip in trips:
-        _render_trip_page(env, trip, out_path, data_path)
-        for entry in trip["entries"]:
+        _render_trip_page(env, trip, out_path)
+        for entry in trip.entries:
             _render_entry_page(env, trip, entry, out_path)
 
     log.info("Build complete → %s/", out_path)
@@ -241,66 +158,50 @@ def build(
 # ---------------------------------------------------------------------------
 
 
-def _render_trips_index(
-    env: Environment,
-    trips: list[dict[str, Any]],
-    out_path: Path,
-) -> None:
+def _render_trips_index(env: Environment, trips: list[Trip], out_path: Path) -> None:
     tpl = env.get_template("index.html")
     html = tpl.render(trips=trips, page_title="EchoTrail")
     _write(out_path / "index.html", html)
     log.info("Rendered trips index → index.html")
 
 
-def _render_trip_page(
-    env: Environment,
-    trip: dict[str, Any],
-    out_path: Path,
-    data_path: Path,
-) -> None:
+def _render_trip_page(env: Environment, trip: Trip, out_path: Path) -> None:
     tpl = env.get_template("trip.html")
-    html = tpl.render(trip=trip, page_title=trip["title"])
-    _write(out_path / "trips" / trip["id"] / "index.html", html)
-    log.info("Rendered trip: %s", trip["id"])
+    html = tpl.render(trip=trip, page_title=trip.title)
+    _write(out_path / "trips" / trip.id / "index.html", html)
+    log.info("Rendered trip: %s", trip.id)
 
     # Copy trip media (cover + entry media)
-    _copy_trip_media(trip, out_path, data_path)
+    _copy_trip_media(trip, out_path)
 
 
-def _render_entry_page(
-    env: Environment,
-    trip: dict[str, Any],
-    entry: dict[str, Any],
-    out_path: Path,
-) -> None:
+def _render_entry_page(env: Environment, trip: Trip, entry: Entry, out_path: Path) -> None:
     tpl = env.get_template("entry.html")
-    page_title = entry["date"] or entry["id"]
+    page_title = entry.date or entry.id
     html = tpl.render(trip=trip, entry=entry, page_title=page_title)
-    dest = out_path / "trips" / trip["id"] / "entries" / entry["id"] / "index.html"
+    dest = out_path / "trips" / trip.id / "entries" / entry.id / "index.html"
     _write(dest, html)
-    log.info("  Rendered entry: %s/%s", trip["id"], entry["id"])
+    log.info("  Rendered entry: %s/%s", trip.id, entry.id)
 
 
-def _copy_trip_media(trip: dict[str, Any], out_path: Path, data_path: Path) -> None:
+def _copy_trip_media(trip: Trip, out_path: Path) -> None:
     """Copy trip cover image and all entry media files to dist/."""
-    trip_src = data_path / "trips" / trip["id"]
+    trip_src = trip.source_dir
 
     # Cover
-    if trip["cover"]:
-        src = trip_src / trip["cover"]
-        dst = out_path / "trips" / trip["id"] / trip["cover"]
+    if trip.cover:
+        src = trip_src / trip.cover
+        dst = out_path / "trips" / trip.id / trip.cover
         if src.exists():
             dst.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(src, dst)
 
     # Entry media
-    for entry in trip["entries"]:
-        entry_src = trip_src / "entries" / entry["id"] / "media"
+    for entry in trip.entries:
+        entry_src = trip_src / "entries" / entry.id / "media"
         if not entry_src.is_dir():
             continue
-        entry_dst = (
-            out_path / "trips" / trip["id"] / "entries" / entry["id"] / "media"
-        )
+        entry_dst = out_path / "trips" / trip.id / "entries" / entry.id / "media"
         if entry_dst.exists():
             shutil.rmtree(entry_dst)
         shutil.copytree(entry_src, entry_dst)

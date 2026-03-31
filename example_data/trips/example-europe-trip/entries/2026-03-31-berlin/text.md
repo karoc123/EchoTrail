@@ -1,3 +1,13 @@
++++
+date = 2026-03-31
+country = 'Germany'
+weather = 'Cloudy, light wind'
+temperature_c = 9
+lat = 52.52
+lon = 13.405
+point_name = 'Berlin – Starting Point'
++++
+
 # Departure from Berlin
 
 Early in the morning at half past six — the alarm rips me from a deep sleep.
@@ -18,4 +28,4 @@ the sun breaks through the clouds for the first time. A good sign.
 Lunch break at a small rest stop on the B96: a sandwich,
 a thermos of coffee, and the first page of my travel diary.
 
-*Day 1 of 21. It begins.*
+_Day 1 of 21. It begins._

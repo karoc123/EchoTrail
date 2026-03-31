@@ -1,3 +1,13 @@
++++
+date = 2026-04-05
+country = 'Czechia'
+weather = 'Sunny, scattered clouds'
+temperature_c = 14
+lat = 50.0755
+lon = 14.4376
+point_name = 'Prague – Old Town Square'
++++
+
 # Prague in the Morning Light
 
 I got up just after sunrise and walked to the Old Town Square —

@@ -1,3 +1,8 @@
++++
+title = 'Example Europe Trip'
+odometer_km = '3,240'
++++
+
 # Example Europe Trip
 
 A journey across Europe — from Berlin through Prague, Vienna and Budapest to the Adriatic coast.

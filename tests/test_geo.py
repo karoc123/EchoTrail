@@ -1,39 +1,33 @@
-"""Tests for echotrail_gen.geo — GeoJSON loading and GPX conversion."""
+"""Tests for echotrail_gen.geo – GeoJSON loading and GPX conversion."""
 
 from __future__ import annotations
 
 import json
+import textwrap
 from pathlib import Path
 
 import pytest
 
-from echotrail_gen.geo import gpx_to_geojson, load_geojson
+from echotrail_gen.geo import load_geojson, gpx_to_geojson
 
 
-class TestLoadGeoJSON:
-    """Tests for load_geojson()."""
+# ── load_geojson ────────────────────────────────────────────────────────────
 
-    def test_loads_valid_geojson(self, tmp_path: Path) -> None:
-        data = {
-            "type": "Feature",
-            "geometry": {"type": "Point", "coordinates": [13.4, 52.5]},
-            "properties": {"name": "Test"},
-        }
-        p = tmp_path / "point.geojson"
-        p.write_text(json.dumps(data))
-
+class TestLoadGeojson:
+    def test_valid_file(self, tmp_path: Path):
+        fc = {"type": "FeatureCollection", "features": []}
+        p = tmp_path / "route.geojson"
+        p.write_text(json.dumps(fc), encoding="utf-8")
         result = load_geojson(p)
-        assert result["type"] == "Feature"
-        assert result["geometry"]["coordinates"] == [13.4, 52.5]
+        assert result["type"] == "FeatureCollection"
 
-    def test_rejects_non_object(self, tmp_path: Path) -> None:
+    def test_non_object_raises(self, tmp_path: Path):
         p = tmp_path / "bad.geojson"
-        p.write_text("[1, 2, 3]")
-
+        p.write_text("[1, 2, 3]", encoding="utf-8")
         with pytest.raises(ValueError, match="Expected a JSON object"):
             load_geojson(p)
 
-    def test_loads_example_route(self, example_data_dir: Path) -> None:
+    def test_loads_example_route(self, example_data_dir: Path):
         route_path = (
             example_data_dir / "trips" / "example-europe-trip" / "route.geojson"
         )
@@ -42,64 +36,77 @@ class TestLoadGeoJSON:
         assert len(result["features"]) == 1
 
 
-class TestGPXToGeoJSON:
-    """Tests for gpx_to_geojson()."""
+# ── gpx_to_geojson ─────────────────────────────────────────────────────────
 
-    def test_converts_track(self, tmp_path: Path) -> None:
-        gpx_xml = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">
-  <trk>
-    <name>Test Track</name>
-    <trkseg>
-      <trkpt lat="52.52" lon="13.40"><ele>34</ele></trkpt>
-      <trkpt lat="50.07" lon="14.44"><ele>200</ele></trkpt>
-    </trkseg>
-  </trk>
-</gpx>
-"""
-        p = tmp_path / "track.gpx"
-        p.write_text(gpx_xml)
-
+class TestGpxToGeojson:
+    def test_track_conversion(self, tmp_path: Path):
+        gpx = textwrap.dedent("""\
+            <?xml version="1.0"?>
+            <gpx version="1.1">
+              <trk>
+                <name>Test Route</name>
+                <trkseg>
+                  <trkpt lat="52.52" lon="13.405"><ele>34</ele></trkpt>
+                  <trkpt lat="50.07" lon="14.44"><ele>200</ele></trkpt>
+                </trkseg>
+              </trk>
+            </gpx>
+        """)
+        p = tmp_path / "route.gpx"
+        p.write_text(gpx, encoding="utf-8")
         result = gpx_to_geojson(p)
+
         assert result["type"] == "FeatureCollection"
         assert len(result["features"]) == 1
+        feat = result["features"][0]
+        assert feat["geometry"]["type"] == "LineString"
+        assert feat["properties"]["name"] == "Test Route"
+        # Coordinates include elevation
+        assert feat["geometry"]["coordinates"][0] == [13.405, 52.52, 34.0]
 
-        feature = result["features"][0]
-        assert feature["geometry"]["type"] == "LineString"
-        assert feature["properties"]["name"] == "Test Track"
-        assert len(feature["geometry"]["coordinates"]) == 2
-
-    def test_converts_waypoints(self, tmp_path: Path) -> None:
-        gpx_xml = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">
-  <wpt lat="52.52" lon="13.40">
-    <name>Berlin</name>
-    <desc>Capital of Germany</desc>
-  </wpt>
-</gpx>
-"""
+    def test_waypoints(self, tmp_path: Path):
+        gpx = textwrap.dedent("""\
+            <?xml version="1.0"?>
+            <gpx version="1.1">
+              <wpt lat="48.2" lon="16.37">
+                <name>Vienna</name>
+                <desc>Capital</desc>
+              </wpt>
+            </gpx>
+        """)
         p = tmp_path / "wpts.gpx"
-        p.write_text(gpx_xml)
-
+        p.write_text(gpx, encoding="utf-8")
         result = gpx_to_geojson(p)
+
         assert len(result["features"]) == 1
+        feat = result["features"][0]
+        assert feat["geometry"]["type"] == "Point"
+        assert feat["geometry"]["coordinates"] == [16.37, 48.2]
+        assert feat["properties"]["name"] == "Vienna"
+        assert feat["properties"]["description"] == "Capital"
 
-        feature = result["features"][0]
-        assert feature["geometry"]["type"] == "Point"
-        assert feature["properties"]["name"] == "Berlin"
-        assert feature["properties"]["description"] == "Capital of Germany"
-
-    def test_empty_gpx(self, tmp_path: Path) -> None:
-        gpx_xml = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<gpx version="1.1" xmlns="http://www.topografix.com/GPX/1/1">
-</gpx>
-"""
-        p = tmp_path / "empty.gpx"
-        p.write_text(gpx_xml)
-
+    def test_gpx_with_namespace(self, tmp_path: Path):
+        gpx = textwrap.dedent("""\
+            <?xml version="1.0"?>
+            <gpx xmlns="http://www.topografix.com/GPX/1/1" version="1.1">
+              <trk>
+                <trkseg>
+                  <trkpt lat="51.0" lon="10.0"/>
+                </trkseg>
+              </trk>
+            </gpx>
+        """)
+        p = tmp_path / "ns.gpx"
+        p.write_text(gpx, encoding="utf-8")
         result = gpx_to_geojson(p)
-        assert result["type"] == "FeatureCollection"
+
+        assert len(result["features"]) == 1
+        coords = result["features"][0]["geometry"]["coordinates"]
+        assert coords == [[10.0, 51.0]]
+
+    def test_empty_gpx(self, tmp_path: Path):
+        gpx = '<?xml version="1.0"?><gpx version="1.1"></gpx>'
+        p = tmp_path / "empty.gpx"
+        p.write_text(gpx, encoding="utf-8")
+        result = gpx_to_geojson(p)
         assert result["features"] == []

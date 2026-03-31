@@ -6,14 +6,15 @@ build-backend = "setuptools.build_meta"
 name = "echotrail_gen"
 version = "0.1.0"
 description = "Static site generator for EchoTrail travel journals."
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 dependencies = [
     "jinja2>=3.1",
+    "markdown>=3.5",
+    "pydantic>=2.7",
 ]
 
 [project.optional-dependencies]
-markdown = ["markdown>=3.5"]
-test = ["pytest>=7"]
+dev = ["pytest>=7"]
 
 [project.scripts]
 echotrail-gen = "echotrail_gen.cli:main"

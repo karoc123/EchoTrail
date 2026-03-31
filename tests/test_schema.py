@@ -1,101 +1,235 @@
-"""Tests for echotrail_gen.schema — data loading layer."""
+"""Tests for echotrail_gen.schema – data loading layer."""
 
 from __future__ import annotations
 
+import json
+import textwrap
 from pathlib import Path
 
-from echotrail_gen.schema import load_all_trips, load_entry, load_trip
+import pytest
+
+from echotrail_gen.schema import (
+    _parse_frontmatter,
+    _media_files,
+    load_entry,
+    load_trip,
+    load_all_trips,
+)
 
 
-class TestLoadAllTrips:
-    """Tests for load_all_trips()."""
+# ── _parse_frontmatter ─────────────────────────────────────────────────────
 
-    def test_loads_example_data(self, example_data_dir: Path) -> None:
-        trips = load_all_trips(example_data_dir)
-        assert len(trips) == 1
+class TestParseFrontmatter:
+    def test_valid_toml(self):
+        text = textwrap.dedent("""\
+            +++
+            title = 'Hello'
+            count = 42
+            +++
 
-    def test_empty_directory(self, tmp_path: Path) -> None:
-        trips = load_all_trips(tmp_path)
-        assert trips == []
+            Body text here.
+        """)
+        meta, body = _parse_frontmatter(text)
+        assert meta["title"] == "Hello"
+        assert meta["count"] == 42
+        assert body == "Body text here."
 
-    def test_missing_directory(self, tmp_path: Path) -> None:
-        trips = load_all_trips(tmp_path / "nonexistent")
-        assert trips == []
+    def test_no_frontmatter(self):
+        text = "Just plain text.\nNo delimiters."
+        meta, body = _parse_frontmatter(text)
+        assert meta == {}
+        assert body == text
+
+    def test_empty_frontmatter(self):
+        text = "+++\n+++\nBody only."
+        meta, body = _parse_frontmatter(text)
+        assert meta == {}
+        assert body == text
+
+    def test_date_value(self):
+        text = "+++\ndate = 2026-03-31\n+++\nText."
+        meta, body = _parse_frontmatter(text)
+        from datetime import date
+        assert meta["date"] == date(2026, 3, 31)
 
 
-class TestLoadTrip:
-    """Tests for load_trip()."""
+# ── _media_files ────────────────────────────────────────────────────────────
 
-    def test_loads_example_trip(self, example_data_dir: Path) -> None:
-        trip_dir = example_data_dir / "trips" / "example-europe-trip"
-        trip = load_trip(trip_dir)
+class TestMediaFiles:
+    def test_mixed_files(self, tmp_path: Path):
+        media = tmp_path / "media"
+        media.mkdir()
+        (media / "a.jpg").write_bytes(b"img")
+        (media / "b.mp4").write_bytes(b"vid")
+        (media / "c.png").write_bytes(b"img")
+        (media / "readme.txt").write_bytes(b"skip")
 
-        assert trip["id"] == "example-europe-trip"
-        assert trip["title"] == "Example Europe Trip"
-        assert trip["odometer_km"] == "3.240"
-        assert trip["route_geojson"] is not None
-        assert trip["route_geojson"]["type"] == "FeatureCollection"
-        assert trip["url"] == "trips/example-europe-trip/"
+        result = _media_files(media)
+        assert len(result) == 3
+        assert result[0].type == "image" and result[0].name == "a.jpg"
+        assert result[1].type == "video" and result[1].name == "b.mp4"
+        assert result[2].type == "image" and result[2].name == "c.png"
 
-    def test_trip_has_entries(self, example_data_dir: Path) -> None:
-        trip_dir = example_data_dir / "trips" / "example-europe-trip"
-        trip = load_trip(trip_dir)
+    def test_nonexistent_dir(self, tmp_path: Path):
+        result = _media_files(tmp_path / "nope")
+        assert result == []
 
-        assert len(trip["entries"]) == 2
-        entry_ids = [e["id"] for e in trip["entries"]]
-        assert "2026-03-31-berlin" in entry_ids
-        assert "2026-04-05-prague" in entry_ids
+    def test_empty_dir(self, tmp_path: Path):
+        media = tmp_path / "media"
+        media.mkdir()
+        assert _media_files(media) == []
 
-    def test_minimal_trip(self, tmp_path: Path) -> None:
-        """A trip with only a title.txt should load without errors."""
-        trip_dir = tmp_path / "trips" / "minimal"
-        trip_dir.mkdir(parents=True)
-        (trip_dir / "title.txt").write_text("Minimal Trip")
 
-        trip = load_trip(trip_dir)
-        assert trip["title"] == "Minimal Trip"
-        assert trip["entries"] == []
-        assert trip["route_geojson"] is None
-        assert trip["cover"] is None
-
-    def test_trip_without_title_uses_dirname(self, tmp_path: Path) -> None:
-        trip_dir = tmp_path / "trips" / "my-trip"
-        trip_dir.mkdir(parents=True)
-
-        trip = load_trip(trip_dir)
-        assert trip["title"] == "my-trip"
-
+# ── load_entry ──────────────────────────────────────────────────────────────
 
 class TestLoadEntry:
-    """Tests for load_entry()."""
+    def test_full_entry(self, data_dir: Path):
+        entry_dir = data_dir / "trips" / "2026-test-tour" / "entries" / "2026-03-31-berlin"
+        entry = load_entry(entry_dir, "2026-test-tour")
 
-    def test_loads_berlin_entry(self, example_data_dir: Path) -> None:
-        entry_dir = (
-            example_data_dir
-            / "trips"
-            / "example-europe-trip"
-            / "entries"
-            / "2026-03-31-berlin"
+        assert entry.id == "2026-03-31-berlin"
+        assert entry.trip_id == "2026-test-tour"
+        assert entry.date == "2026-03-31"
+        assert entry.country == "Germany"
+        assert entry.weather == "Cloudy"
+        assert entry.temperature_c == "9"
+        assert "Departure" in entry.text_md
+
+        # Point GeoJSON generated from lat/lon
+        assert entry.point_geojson is not None
+        coords = entry.point_geojson["geometry"]["coordinates"]
+        assert coords == [13.405, 52.52]
+        assert entry.point_geojson["properties"]["name"] == "Berlin – Start"
+
+        # JSON serialisation
+        assert '"Point"' in entry.point_geojson_json
+
+        # Media
+        assert len(entry.media) == 2
+        names = [m.name for m in entry.media]
+        assert "foto1.jpg" in names
+        assert "clip.mp4" in names
+
+        # URL
+        assert entry.url == "trips/2026-test-tour/entries/2026-03-31-berlin/"
+
+    def test_minimal_entry(self, tmp_path: Path):
+        entry_dir = tmp_path / "minimal"
+        entry_dir.mkdir()
+        (entry_dir / "text.md").write_text(
+            "+++\ndate = 2026-01-01\n+++\nHello.", encoding="utf-8"
         )
-        entry = load_entry(entry_dir, "example-europe-trip")
+        entry = load_entry(entry_dir, "trip-x")
 
-        assert entry["id"] == "2026-03-31-berlin"
-        assert entry["trip_id"] == "example-europe-trip"
-        assert entry["date"] == "2026-03-31"
-        assert entry["country"] == "Germany"
-        assert entry["weather"] == "Cloudy, light wind"
-        assert entry["temperature_c"] == "9"
-        assert entry["point_geojson"] is not None
-        assert "Berlin" in entry["text_md"]
+        assert entry.date == "2026-01-01"
+        assert entry.country == ""
+        assert entry.weather == ""
+        assert entry.temperature_c == ""
+        assert entry.point_geojson is None
+        assert entry.point_geojson_json == "null"
+        assert entry.media == []
+        assert entry.text_md == "Hello."
 
-    def test_minimal_entry(self, tmp_path: Path) -> None:
-        """An empty entry directory should load without errors."""
-        entry_dir = tmp_path / "entries" / "empty"
-        entry_dir.mkdir(parents=True)
+    def test_extra_keys(self, tmp_path: Path):
+        entry_dir = tmp_path / "extra"
+        entry_dir.mkdir()
+        (entry_dir / "text.md").write_text(
+            "+++\ndate = 2026-01-01\nfuel_liters = 12\n+++\n", encoding="utf-8"
+        )
+        entry = load_entry(entry_dir, "t")
+        assert "fuel_liters" in entry.extra
+        assert entry.extra["fuel_liters"] == "12"
 
-        entry = load_entry(entry_dir, "trip-1")
-        assert entry["id"] == "empty"
-        assert entry["date"] == ""
-        assert entry["country"] == ""
-        assert entry["point_geojson"] is None
-        assert entry["media"] == []
+
+# ── load_trip ───────────────────────────────────────────────────────────────
+
+class TestLoadTrip:
+    def test_full_trip(self, data_dir: Path):
+        trip_dir = data_dir / "trips" / "2026-test-tour"
+        trip = load_trip(trip_dir)
+
+        assert trip.id == "2026-test-tour"
+        assert trip.title == "Test-Tour 2026"
+        assert trip.odometer_km == "1.200"
+        assert "test trip" in trip.description_md
+
+        # Route
+        assert trip.route_geojson is not None
+        assert trip.route_geojson["type"] == "FeatureCollection"
+        assert '"LineString"' in trip.route_geojson_json
+
+        # Entries loaded and sorted
+        assert len(trip.entries) == 2
+        assert trip.entries[0].id == "2026-03-31-berlin"
+        assert trip.entries[1].id == "2026-04-05-prague"
+
+        # Extra keys
+        assert trip.extra["vehicle"] == "Honda CB 500X"
+
+        # URL
+        assert trip.url == "trips/2026-test-tour/"
+
+    def test_trip_no_route(self, tmp_path: Path):
+        trip_dir = tmp_path / "no-route"
+        trip_dir.mkdir()
+        (trip_dir / "description.md").write_text(
+            "+++\ntitle = 'Empty'\n+++\nNothing.", encoding="utf-8"
+        )
+        trip = load_trip(trip_dir)
+        assert trip.route_geojson is None
+        assert trip.route_geojson_json == "null"
+        assert trip.entries == []
+
+    def test_trip_no_entries(self, data_dir: Path):
+        """Trip with route but entries dir removed."""
+        trip_dir = data_dir / "trips" / "2026-test-tour"
+        import shutil
+        shutil.rmtree(trip_dir / "entries")
+        trip = load_trip(trip_dir)
+        assert trip.entries == []
+        assert trip.route_geojson is not None
+
+    def test_trip_gpx_fallback(self, tmp_path: Path):
+        trip_dir = tmp_path / "gpx-trip"
+        trip_dir.mkdir()
+        (trip_dir / "description.md").write_text(
+            "+++\ntitle = 'GPX Trip'\n+++\n", encoding="utf-8"
+        )
+        gpx_content = textwrap.dedent("""\
+            <?xml version="1.0"?>
+            <gpx version="1.1">
+              <trk>
+                <name>Route</name>
+                <trkseg>
+                  <trkpt lat="52.52" lon="13.405"/>
+                  <trkpt lat="50.07" lon="14.44"/>
+                </trkseg>
+              </trk>
+            </gpx>
+        """)
+        (trip_dir / "route.gpx").write_text(gpx_content, encoding="utf-8")
+        trip = load_trip(trip_dir)
+        assert trip.route_geojson is not None
+        feat = trip.route_geojson["features"][0]
+        assert feat["geometry"]["type"] == "LineString"
+
+
+# ── load_all_trips ──────────────────────────────────────────────────────────
+
+class TestLoadAllTrips:
+    def test_loads_trips(self, data_dir: Path):
+        trips = load_all_trips(data_dir)
+        assert len(trips) == 1
+        assert trips[0].id == "2026-test-tour"
+
+    def test_empty_data_dir(self, tmp_path: Path):
+        data = tmp_path / "empty"
+        data.mkdir()
+        trips = load_all_trips(data)
+        assert trips == []
+
+    def test_loads_example_data(self, example_data_dir: Path):
+        trips = load_all_trips(example_data_dir)
+        assert len(trips) == 1
+        assert trips[0].title == "Example Europe Trip"
+        assert len(trips[0].entries) == 2
