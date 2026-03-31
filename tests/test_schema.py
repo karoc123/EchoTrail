@@ -69,9 +69,9 @@ class TestMediaFiles:
 
         result = _media_files(media)
         assert len(result) == 3
-        assert result[0] == {"type": "image", "name": "a.jpg"}
-        assert result[1] == {"type": "video", "name": "b.mp4"}
-        assert result[2] == {"type": "image", "name": "c.png"}
+        assert result[0].type == "image" and result[0].name == "a.jpg"
+        assert result[1].type == "video" and result[1].name == "b.mp4"
+        assert result[2].type == "image" and result[2].name == "c.png"
 
     def test_nonexistent_dir(self, tmp_path: Path):
         result = _media_files(tmp_path / "nope")
@@ -90,31 +90,31 @@ class TestLoadEntry:
         entry_dir = data_dir / "trips" / "2026-test-tour" / "entries" / "2026-03-31-berlin"
         entry = load_entry(entry_dir, "2026-test-tour")
 
-        assert entry["id"] == "2026-03-31-berlin"
-        assert entry["trip_id"] == "2026-test-tour"
-        assert entry["date"] == "2026-03-31"
-        assert entry["country"] == "Deutschland"
-        assert entry["weather"] == "Bewölkt"
-        assert entry["temperature_c"] == "9"
-        assert "Aufbruch" in entry["text_md"]
+        assert entry.id == "2026-03-31-berlin"
+        assert entry.trip_id == "2026-test-tour"
+        assert entry.date == "2026-03-31"
+        assert entry.country == "Deutschland"
+        assert entry.weather == "Bewölkt"
+        assert entry.temperature_c == "9"
+        assert "Aufbruch" in entry.text_md
 
         # Point GeoJSON generated from lat/lon
-        assert entry["point_geojson"] is not None
-        coords = entry["point_geojson"]["geometry"]["coordinates"]
+        assert entry.point_geojson is not None
+        coords = entry.point_geojson["geometry"]["coordinates"]
         assert coords == [13.405, 52.52]
-        assert entry["point_geojson"]["properties"]["name"] == "Berlin – Start"
+        assert entry.point_geojson["properties"]["name"] == "Berlin – Start"
 
         # JSON serialisation
-        assert '"Point"' in entry["point_geojson_json"]
+        assert '"Point"' in entry.point_geojson_json
 
         # Media
-        assert len(entry["media"]) == 2
-        names = [m["name"] for m in entry["media"]]
+        assert len(entry.media) == 2
+        names = [m.name for m in entry.media]
         assert "foto1.jpg" in names
         assert "clip.mp4" in names
 
         # URL
-        assert entry["url"] == "trips/2026-test-tour/entries/2026-03-31-berlin/"
+        assert entry.url == "trips/2026-test-tour/entries/2026-03-31-berlin/"
 
     def test_minimal_entry(self, tmp_path: Path):
         entry_dir = tmp_path / "minimal"
@@ -124,14 +124,14 @@ class TestLoadEntry:
         )
         entry = load_entry(entry_dir, "trip-x")
 
-        assert entry["date"] == "2026-01-01"
-        assert entry["country"] == ""
-        assert entry["weather"] == ""
-        assert entry["temperature_c"] == ""
-        assert entry["point_geojson"] is None
-        assert entry["point_geojson_json"] == "null"
-        assert entry["media"] == []
-        assert entry["text_md"] == "Hello."
+        assert entry.date == "2026-01-01"
+        assert entry.country == ""
+        assert entry.weather == ""
+        assert entry.temperature_c == ""
+        assert entry.point_geojson is None
+        assert entry.point_geojson_json == "null"
+        assert entry.media == []
+        assert entry.text_md == "Hello."
 
     def test_extra_keys(self, tmp_path: Path):
         entry_dir = tmp_path / "extra"
@@ -140,8 +140,8 @@ class TestLoadEntry:
             "+++\ndate = 2026-01-01\nfuel_liters = 12\n+++\n", encoding="utf-8"
         )
         entry = load_entry(entry_dir, "t")
-        assert "fuel_liters" in entry["extra"]
-        assert entry["extra"]["fuel_liters"] == "12"
+        assert "fuel_liters" in entry.extra
+        assert entry.extra["fuel_liters"] == "12"
 
 
 # ── load_trip ───────────────────────────────────────────────────────────────
@@ -151,26 +151,26 @@ class TestLoadTrip:
         trip_dir = data_dir / "trips" / "2026-test-tour"
         trip = load_trip(trip_dir)
 
-        assert trip["id"] == "2026-test-tour"
-        assert trip["title"] == "Test-Tour 2026"
-        assert trip["odometer_km"] == "1.200"
-        assert "Testreise" in trip["description_md"]
+        assert trip.id == "2026-test-tour"
+        assert trip.title == "Test-Tour 2026"
+        assert trip.odometer_km == "1.200"
+        assert "Testreise" in trip.description_md
 
         # Route
-        assert trip["route_geojson"] is not None
-        assert trip["route_geojson"]["type"] == "FeatureCollection"
-        assert '"LineString"' in trip["route_geojson_json"]
+        assert trip.route_geojson is not None
+        assert trip.route_geojson["type"] == "FeatureCollection"
+        assert '"LineString"' in trip.route_geojson_json
 
         # Entries loaded and sorted
-        assert len(trip["entries"]) == 2
-        assert trip["entries"][0]["id"] == "2026-03-31-berlin"
-        assert trip["entries"][1]["id"] == "2026-04-05-prag"
+        assert len(trip.entries) == 2
+        assert trip.entries[0].id == "2026-03-31-berlin"
+        assert trip.entries[1].id == "2026-04-05-prag"
 
         # Extra keys
-        assert trip["extra"]["vehicle"] == "Honda CB 500X"
+        assert trip.extra["vehicle"] == "Honda CB 500X"
 
         # URL
-        assert trip["url"] == "trips/2026-test-tour/"
+        assert trip.url == "trips/2026-test-tour/"
 
     def test_trip_no_route(self, tmp_path: Path):
         trip_dir = tmp_path / "no-route"
@@ -179,9 +179,9 @@ class TestLoadTrip:
             "+++\ntitle = 'Leer'\n+++\nNix.", encoding="utf-8"
         )
         trip = load_trip(trip_dir)
-        assert trip["route_geojson"] is None
-        assert trip["route_geojson_json"] == "null"
-        assert trip["entries"] == []
+        assert trip.route_geojson is None
+        assert trip.route_geojson_json == "null"
+        assert trip.entries == []
 
     def test_trip_no_entries(self, data_dir: Path):
         """Trip with route but entries dir removed."""
@@ -189,8 +189,8 @@ class TestLoadTrip:
         import shutil
         shutil.rmtree(trip_dir / "entries")
         trip = load_trip(trip_dir)
-        assert trip["entries"] == []
-        assert trip["route_geojson"] is not None
+        assert trip.entries == []
+        assert trip.route_geojson is not None
 
     def test_trip_gpx_fallback(self, tmp_path: Path):
         trip_dir = tmp_path / "gpx-trip"
@@ -212,8 +212,8 @@ class TestLoadTrip:
         """)
         (trip_dir / "route.gpx").write_text(gpx_content, encoding="utf-8")
         trip = load_trip(trip_dir)
-        assert trip["route_geojson"] is not None
-        feat = trip["route_geojson"]["features"][0]
+        assert trip.route_geojson is not None
+        feat = trip.route_geojson["features"][0]
         assert feat["geometry"]["type"] == "LineString"
 
 
@@ -223,7 +223,7 @@ class TestLoadAllTrips:
     def test_loads_trips(self, data_dir: Path):
         trips = load_all_trips(data_dir)
         assert len(trips) == 1
-        assert trips[0]["id"] == "2026-test-tour"
+        assert trips[0].id == "2026-test-tour"
 
     def test_empty_data_dir(self, tmp_path: Path):
         data = tmp_path / "empty"
