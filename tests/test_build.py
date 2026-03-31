@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from echotrail_gen.builder import build, _markdown_to_html, _bundled_templates, _bundled_assets
+from echotrail_gen.builder import build, _markdown_to_html, _bundled_templates, _bundled_assets, BuildResult
 
 
 # ── Bundled paths ───────────────────────────────────────────────────────────
@@ -338,3 +338,46 @@ class TestBuildEdgeCases:
 
         build(data_dir=str(example_data_dir), output_dir=str(out))
         assert not stale.exists()
+
+
+# ── BuildResult ─────────────────────────────────────────────────────────────
+
+class TestBuildResult:
+    """Test BuildResult dataclass."""
+
+    def test_build_returns_result(self, example_data_dir: Path, tmp_path: Path) -> None:
+        """Test that build() returns a BuildResult."""
+        out = tmp_path / "dist"
+        result = build(data_dir=str(example_data_dir), output_dir=str(out))
+
+        assert isinstance(result, BuildResult)
+        assert result.trips_count == 1
+        assert result.entries_count == 2
+        assert result.output_path == out
+        assert result.warnings == []
+
+    def test_build_result_str(self, example_data_dir: Path, tmp_path: Path) -> None:
+        """Test BuildResult string representation."""
+        out = tmp_path / "dist"
+        result = build(data_dir=str(example_data_dir), output_dir=str(out))
+
+        result_str = str(result)
+        assert str(out) in result_str
+        assert "1 trip(s)" in result_str
+        assert "2 entrie(s)" in result_str
+
+    def test_empty_build_result(self, tmp_path: Path, templates_dir: Path, assets_dir: Path) -> None:
+        """Test BuildResult for empty data dir."""
+        data = tmp_path / "data"
+        (data / "trips").mkdir(parents=True)
+        out = tmp_path / "dist"
+
+        result = build(
+            data_dir=str(data),
+            output_dir=str(out),
+            templates_dir=str(templates_dir),
+            assets_dir=str(assets_dir),
+        )
+
+        assert result.trips_count == 0
+        assert result.entries_count == 0

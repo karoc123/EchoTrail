@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 import shutil
+from dataclasses import dataclass, field
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markdown import markdown as md_markdown
@@ -26,6 +27,42 @@ from echotrail_gen.images import process_entry_media
 log = logging.getLogger(__name__)
 
 _PACKAGE_DIR = Path(__file__).resolve().parent
+
+
+# ---------------------------------------------------------------------------
+# Build result
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class BuildResult:
+    """Result of a build operation.
+
+    Provides structured feedback about the build process, making it easier
+    to test build outcomes and report issues programmatically.
+    """
+
+    trips_count: int
+    """Number of trips processed."""
+
+    entries_count: int
+    """Total number of entries across all trips."""
+
+    output_path: Path
+    """Path to the generated output directory."""
+
+    warnings: list[str] = field(default_factory=list)
+    """List of non-fatal warnings encountered during build."""
+
+    def __str__(self) -> str:
+        """Human-readable summary of build results."""
+        lines = [
+            f"Build complete → {self.output_path}/",
+            f"  {self.trips_count} trip(s), {self.entries_count} entrie(s)",
+        ]
+        if self.warnings:
+            lines.append(f"  {len(self.warnings)} warning(s)")
+        return "\n".join(lines)
 
 
 def _bundled_templates() -> Path:
@@ -117,7 +154,7 @@ def build(
     templates_dir: str | None = None,
     assets_dir: str | None = None,
     fetch_leaflet: bool = False,
-) -> None:
+) -> BuildResult:
     """Build the complete static site into *output_dir*.
 
     When *templates_dir* or *assets_dir* are ``None``, the bundled default
@@ -126,6 +163,10 @@ def build(
 
     When *fetch_leaflet* is ``True``, Leaflet vendor files are downloaded
     directly into the output assets directory during the build.
+
+    Returns:
+        BuildResult: Structured information about the build outcome including
+        trip/entry counts and any warnings encountered.
     """
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 
@@ -170,12 +211,20 @@ def build(
     _render_trips_index(env, trips, out_path)
 
     # --- Render trip + entry pages ---
+    entries_count = 0
     for trip in trips:
         _render_trip_page(env, trip, out_path)
+        entries_count += len(trip.entries)
         for entry in trip.entries:
             _render_entry_page(env, trip, entry, out_path)
 
     log.info("Build complete → %s/", out_path)
+
+    return BuildResult(
+        trips_count=len(trips),
+        entries_count=entries_count,
+        output_path=out_path,
+    )
 
 
 # ---------------------------------------------------------------------------
