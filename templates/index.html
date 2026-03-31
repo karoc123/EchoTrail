@@ -1,0 +1,38 @@
+{% set assets_root = "assets/" %}
+{% set root_url = "" %}
+{% extends "base.html" %}
+
+{% block title %}Alle Touren{% endblock %}
+
+{% block content %}
+<section class="trips-index">
+  <h1>Alle Touren</h1>
+
+  {% if trips %}
+  <ul class="trip-list">
+    {% for trip in trips %}
+    <li class="trip-card">
+      {% if trip.cover %}
+      <a href="{{ trip.url }}index.html">
+        <img class="trip-cover" src="{{ trip.url }}{{ trip.cover }}" alt="{{ trip.title }}" />
+      </a>
+      {% endif %}
+      <div class="trip-card__body">
+        <h2><a href="{{ trip.url }}index.html">{{ trip.title }}</a></h2>
+        {% if trip.odometer_km %}
+        <p class="trip-meta">🛣 {{ trip.odometer_km }} km &nbsp;·&nbsp; {{ trip.entries | length }} Einträge</p>
+        {% else %}
+        <p class="trip-meta">{{ trip.entries | length }} Einträge</p>
+        {% endif %}
+        {% if trip.description_md %}
+        <div class="trip-desc">{{ markdown(trip.description_md) }}</div>
+        {% endif %}
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <p>Noch keine Touren vorhanden. Lege deine erste Tour unter <code>data/trips/</code> an.</p>
+  {% endif %}
+</section>
+{% endblock %}

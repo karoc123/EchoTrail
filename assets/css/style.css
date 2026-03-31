@@ -1,0 +1,166 @@
+/* ============================================================
+   EchoTrail – site stylesheet
+   ============================================================ */
+
+/* ---------- Reset / base ---------------------------------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #222;
+  background: #faf9f7;
+  line-height: 1.65;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+a { color: #c04a00; text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+img, video { max-width: 100%; height: auto; display: block; }
+
+/* ---------- Layout ---------------------------------------- */
+.site-header {
+  background: #1a1a1a;
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.site-logo {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #f5f5f5;
+  text-decoration: none;
+}
+
+.site-main {
+  flex: 1;
+  max-width: 900px;
+  width: 100%;
+  margin: 2rem auto;
+  padding: 0 1.25rem;
+}
+
+.site-footer {
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 0.85rem;
+  color: #888;
+  border-top: 1px solid #e8e8e8;
+}
+
+/* ---------- Breadcrumb ------------------------------------ */
+.breadcrumb {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 1.25rem;
+}
+
+/* ---------- Trips index ----------------------------------- */
+.trip-list {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.trip-card {
+  background: #fff;
+  border: 1px solid #e0ddd8;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: box-shadow 0.15s;
+}
+
+.trip-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.09); }
+
+.trip-cover { width: 100%; height: 180px; object-fit: cover; }
+
+.trip-card__body { padding: 1rem; }
+
+.trip-card__body h2 { font-size: 1.15rem; margin-bottom: 0.35rem; }
+
+.trip-meta { font-size: 0.85rem; color: #666; margin-bottom: 0.5rem; }
+
+.trip-desc { font-size: 0.9rem; color: #444; margin-top: 0.5rem; }
+
+/* ---------- Trip detail ----------------------------------- */
+.trip-detail h1 { font-size: 2rem; margin-bottom: 0.5rem; }
+
+.trip-meta-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.75rem 0 1.5rem;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.trip-description { margin-bottom: 1.5rem; }
+
+.entry-list { margin-top: 2rem; }
+.entry-list h2 { font-size: 1.3rem; margin-bottom: 0.75rem; }
+.entry-list ul { list-style: none; }
+.entry-item { padding: 0.5rem 0; border-bottom: 1px solid #eee; }
+.entry-date { font-weight: 600; margin-right: 0.5rem; }
+.entry-country { font-size: 0.85rem; color: #666; }
+
+/* ---------- Entry detail ---------------------------------- */
+.entry-detail h1 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+
+.entry-meta-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.75rem 0 1.5rem;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.entry-text { margin: 1.5rem 0; }
+.entry-text p { margin-bottom: 0.8rem; }
+.entry-text h2, .entry-text h3 { margin: 1.2rem 0 0.4rem; }
+
+.entry-nav { margin-top: 2rem; font-size: 0.9rem; }
+
+/* ---------- Map ------------------------------------------- */
+.map {
+  border-radius: 6px;
+  border: 1px solid #ddd;
+  margin-bottom: 1.5rem;
+}
+
+.map--route { height: 420px; }
+.map--point { height: 280px; }
+
+/* ---------- Media gallery --------------------------------- */
+.media-gallery { margin: 2rem 0; }
+.media-gallery h2 { font-size: 1.2rem; margin-bottom: 1rem; }
+
+.media-item {
+  margin-bottom: 1.25rem;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.media-item img, .media-item video {
+  width: 100%;
+  border-radius: 6px;
+}
+
+/* ---------- Responsive ------------------------------------ */
+@media (max-width: 600px) {
+  .trip-list { grid-template-columns: 1fr; }
+  .map--route { height: 280px; }
+}

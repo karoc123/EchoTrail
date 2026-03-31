@@ -1,0 +1,21 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [13.4050, 52.5200],
+          [13.9000, 51.9000],
+          [14.4376, 50.0755],
+          [15.5000, 49.5000],
+          [16.3738, 48.2082]
+        ]
+      },
+      "properties": {
+        "name": "Europa-Tour 2026 – Hauptroute"
+      }
+    }
+  ]
+}
