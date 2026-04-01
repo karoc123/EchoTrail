@@ -1,12 +1,1 @@
-{
-  "media": [
-    {
-      "name": "bild_entry_1_1.jpg",
-      "description": "Morning light over Berlin rooftops"
-    },
-    {
-      "name": "bild_entry_1_2.jpg",
-      "description": "Checkpoint Charlie street view"
-    }
-  ]
-}
+{"media":[{"name":"bild_entry_1_1.jpg","description":"Morning light over Berlin rooftops"},{"name":"bild_entry_1_2.jpg","description":"Checkpoint Charlie street view"}]}
