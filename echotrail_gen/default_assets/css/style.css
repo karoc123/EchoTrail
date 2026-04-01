@@ -232,6 +232,30 @@ hr {
   margin: 0.5rem 0 0.75rem 1.25rem;
 }
 
+.trip-countries {
+  margin: -0.35rem 0 1.35rem;
+}
+
+.trip-countries h2 {
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+}
+
+.trip-country-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.9rem;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 0.84rem;
+  color: #555;
+}
+
 /* Entry list on trip page */
 .entry-list {
   margin-top: 2.5rem;
@@ -272,6 +296,16 @@ hr {
 .entry-country {
   font-size: 0.82rem;
   color: #888;
+}
+
+.flag-emoji {
+  font-size: 1rem;
+  line-height: 1;
+  vertical-align: -0.08em;
+}
+
+.entry-subtitle {
+  color: #666;
 }
 
 /* ---------- Entry detail ---------------------------------- */

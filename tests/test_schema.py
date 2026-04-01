@@ -11,6 +11,7 @@ import pytest
 from echotrail_gen.schema import (
     _parse_frontmatter,
     _media_files,
+    country_to_flag,
     load_entry,
     load_trip,
     load_all_trips,
@@ -94,6 +95,7 @@ class TestLoadEntry:
         assert entry.trip_id == "2026-test-tour"
         assert entry.date == "2026-03-31"
         assert entry.country == "Germany"
+        assert entry.country_flag == "🇩🇪"
         assert entry.weather == "Cloudy"
         assert entry.temperature_c == "9"
         assert "Departure" in entry.text_md
@@ -183,6 +185,8 @@ class TestLoadTrip:
         assert len(trip.entries) == 2
         assert trip.entries[0].id == "2026-03-31-berlin"
         assert trip.entries[1].id == "2026-04-05-prague"
+        assert [c["name"] for c in trip.visited_countries] == ["Germany", "Czechia"]
+        assert [c["flag"] for c in trip.visited_countries] == ["🇩🇪", "🇨🇿"]
 
         # Extra keys
         assert trip.extra["vehicle"] == "Honda CB 500X"
@@ -254,3 +258,14 @@ class TestLoadAllTrips:
         assert len(trips) == 1
         assert trips[0].title == "Example Europe Trip"
         assert len(trips[0].entries) == 2
+
+
+class TestCountryFlags:
+    def test_country_to_flag_with_name(self):
+        assert country_to_flag("Germany") == "🇩🇪"
+
+    def test_country_to_flag_with_iso_code(self):
+        assert country_to_flag("se") == "🇸🇪"
+
+    def test_country_to_flag_unknown(self):
+        assert country_to_flag("Atlantis") == ""

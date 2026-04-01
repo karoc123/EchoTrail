@@ -348,19 +348,20 @@ A `markdown()` helper is available in every template to render Markdown fields a
 
 ### Trip object (available in `trip.html` and `index.html`)
 
-| Key                  | Type         | Description                                              |
-| -------------------- | ------------ | -------------------------------------------------------- |
-| `id`                 | str          | Directory name                                           |
-| `title`              | str          | From front matter `title` in `description.md`            |
-| `description_md`     | str          | Markdown body from `description.md` (after front matter) |
-| `odometer_km`        | str          | From front matter `odometer_km` in `description.md`      |
-| `cover`              | str or None  | Filename of cover image                                  |
-| `route_geojson`      | dict or None | Parsed GeoJSON                                           |
-| `route_geojson_json` | str          | JSON-serialised route (safe to embed in `<script>`)      |
-| `entries`            | list         | List of Entry objects                                    |
-| `extra`              | dict         | Extra front matter keys not in the known set             |
-| `meta`               | dict         | Parsed `meta.json` (empty dict if absent)                |
-| `url`                | str          | Relative URL from `dist/` root                           |
+| Key                  | Type         | Description                                                |
+| -------------------- | ------------ | ---------------------------------------------------------- |
+| `id`                 | str          | Directory name                                             |
+| `title`              | str          | From front matter `title` in `description.md`              |
+| `description_md`     | str          | Markdown body from `description.md` (after front matter)   |
+| `odometer_km`        | str          | From front matter `odometer_km` in `description.md`        |
+| `cover`              | str or None  | Filename of cover image                                    |
+| `route_geojson`      | dict or None | Parsed GeoJSON                                             |
+| `route_geojson_json` | str          | JSON-serialised route (safe to embed in `<script>`)        |
+| `entries`            | list         | List of Entry objects                                      |
+| `visited_countries`  | list         | Unique countries in entry order, each with `name` + `flag` |
+| `extra`              | dict         | Extra front matter keys not in the known set               |
+| `meta`               | dict         | Parsed `meta.json` (empty dict if absent)                  |
+| `url`                | str          | Relative URL from `dist/` root                             |
 
 ### Entry object (available in `entry.html` and within `trip.entries`)
 
@@ -371,6 +372,7 @@ A `markdown()` helper is available in every template to render Markdown fields a
 | `date`               | str          | From front matter `date` in `text.md`                           |
 | `text_md`            | str          | Markdown body from `text.md` (after front matter)               |
 | `country`            | str          | From front matter `country`                                     |
+| `country_flag`       | str          | Emoji flag resolved from `country` (empty if unknown)           |
 | `weather`            | str          | From front matter `weather`                                     |
 | `temperature_c`      | str          | From front matter `temperature_c`                               |
 | `point_geojson`      | dict or None | Parsed GeoJSON (generated from lat/lon)                         |

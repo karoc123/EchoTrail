@@ -28,6 +28,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import unicodedata
 from pathlib import Path
 from typing import Any, Literal
 
@@ -68,6 +69,7 @@ class Entry(BaseModel):
     date: str
     text_md: str
     country: str = ""
+    country_flag: str = ""
     weather: str = ""
     temperature_c: str = ""
     point_geojson: dict[str, Any] | None = None
@@ -91,6 +93,7 @@ class Trip(BaseModel):
     route_geojson: dict[str, Any] | None = None
     route_geojson_json: str = "null"
     entries: list[Entry]
+    visited_countries: list[dict[str, str]] = []
     extra: dict[str, str] = {}
     meta: dict[str, Any] = {}
     source_dir: Path
@@ -105,6 +108,251 @@ _VIDEO_EXTS = {".mp4", ".webm", ".mov"}
 _FRONTMATTER_RE = re.compile(
     r"^\+\+\+\s*\n(.*?)\n\+\+\+\s*\n?(.*)", re.DOTALL
 )
+
+_COUNTRY_TO_CODE = {
+    # Germany
+    "germany": "DE",
+    "deutschland": "DE",
+    # Sweden
+    "sweden": "SE",
+    "schweden": "SE",
+    # Norway
+    "norway": "NO",
+    "norwegen": "NO",
+    # Czechia
+    "czechia": "CZ",
+    "czech republic": "CZ",
+    "tschechien": "CZ",
+    "tschechische republik": "CZ",
+    # Austria
+    "austria": "AT",
+    "osterreich": "AT",
+    "oesterreich": "AT",
+    # Switzerland
+    "switzerland": "CH",
+    "schweiz": "CH",
+    # Denmark
+    "denmark": "DK",
+    "danemark": "DK",
+    "danemark": "DK",
+    # Finland
+    "finland": "FI",
+    "finnland": "FI",
+    # Netherlands
+    "netherlands": "NL",
+    "the netherlands": "NL",
+    "niederlande": "NL",
+    "holland": "NL",
+    # France
+    "france": "FR",
+    "frankreich": "FR",
+    # Italy
+    "italy": "IT",
+    "italien": "IT",
+    # Spain
+    "spain": "ES",
+    "spanien": "ES",
+    # Portugal
+    "portugal": "PT",
+    # Poland
+    "poland": "PL",
+    "polen": "PL",
+    # Belgium
+    "belgium": "BE",
+    "belgien": "BE",
+    # United Kingdom
+    "united kingdom": "GB",
+    "uk": "GB",
+    "england": "GB",
+    "scotland": "GB",
+    "wales": "GB",
+    "great britain": "GB",
+    "grossbritannien": "GB",
+    # Ireland
+    "ireland": "IE",
+    "irland": "IE",
+    # Iceland
+    "iceland": "IS",
+    "island": "IS",
+    # Estonia
+    "estonia": "EE",
+    "estland": "EE",
+    # Latvia
+    "latvia": "LV",
+    "lettland": "LV",
+    # Lithuania
+    "lithuania": "LT",
+    "litauen": "LT",
+    # Slovakia
+    "slovakia": "SK",
+    "slowakei": "SK",
+    "slovak republic": "SK",
+    # Hungary
+    "hungary": "HU",
+    "ungarn": "HU",
+    # Romania
+    "romania": "RO",
+    "rumanien": "RO",
+    # Bulgaria
+    "bulgaria": "BG",
+    "bulgarien": "BG",
+    # Croatia
+    "croatia": "HR",
+    "kroatien": "HR",
+    # Slovenia
+    "slovenia": "SI",
+    "slowenien": "SI",
+    # Serbia
+    "serbia": "RS",
+    "serbien": "RS",
+    # Bosnia and Herzegovina
+    "bosnia and herzegovina": "BA",
+    "bosnia": "BA",
+    "bosnien": "BA",
+    "bosnien und herzegowina": "BA",
+    # Montenegro
+    "montenegro": "ME",
+    # North Macedonia
+    "north macedonia": "MK",
+    "nordmazedonien": "MK",
+    "macedonia": "MK",
+    # Albania
+    "albania": "AL",
+    "albanien": "AL",
+    # Greece
+    "greece": "GR",
+    "griechenland": "GR",
+    # Cyprus
+    "cyprus": "CY",
+    "zypern": "CY",
+    # Malta
+    "malta": "MT",
+    # Luxembourg
+    "luxembourg": "LU",
+    "luxemburg": "LU",
+    # Liechtenstein
+    "liechtenstein": "LI",
+    # Monaco
+    "monaco": "MC",
+    # San Marino
+    "san marino": "SM",
+    # Andorra
+    "andorra": "AD",
+    # Belarus
+    "belarus": "BY",
+    "weissrussland": "BY",
+    "weißrussland": "BY",
+    # Ukraine
+    "ukraine": "UA",
+    # Russia
+    "russia": "RU",
+    "russland": "RU",
+    "russian federation": "RU",
+    # Moldova
+    "moldova": "MD",
+    "moldau": "MD",
+    # Georgia
+    "georgia": "GE",
+    "georgien": "GE",
+    # Armenia
+    "armenia": "AM",
+    "armenien": "AM",
+    # Azerbaijan
+    "azerbaijan": "AZ",
+    "aserbaidschan": "AZ",
+    # Turkey
+    "turkey": "TR",
+    "turkiye": "TR",
+    "turkei": "TR",
+    "turchei": "TR",
+    # Kosovo
+    "kosovo": "XK",
+    # USA
+    "usa": "US",
+    "united states": "US",
+    "united states of america": "US",
+    # Canada
+    "canada": "CA",
+    "kanada": "CA",
+    # Mexico
+    "mexico": "MX",
+    "mexiko": "MX",
+    # Brazil
+    "brazil": "BR",
+    "brasilien": "BR",
+    # Argentina
+    "argentina": "AR",
+    "argentinien": "AR",
+    # Chile
+    "chile": "CL",
+    # Colombia
+    "colombia": "CO",
+    "kolumbien": "CO",
+    # Peru
+    "peru": "PE",
+    # Japan
+    "japan": "JP",
+    # China
+    "china": "CN",
+    "volksrepublik china": "CN",
+    # South Korea
+    "south korea": "KR",
+    "korea": "KR",
+    "sudkorea": "KR",
+    # India
+    "india": "IN",
+    "indien": "IN",
+    # Australia
+    "australia": "AU",
+    "australien": "AU",
+    # New Zealand
+    "new zealand": "NZ",
+    "neuseeland": "NZ",
+    # South Africa
+    "south africa": "ZA",
+    "sudafrika": "ZA",
+    # Egypt
+    "egypt": "EG",
+    "agypten": "EG",
+    # Morocco
+    "morocco": "MA",
+    "marokko": "MA",
+    # Tunisia
+    "tunisia": "TN",
+    "tunesien": "TN",
+    # Kenya
+    "kenya": "KE",
+    "kenia": "KE",
+    # Nigeria
+    "nigeria": "NG",
+    # Thailand
+    "thailand": "TH",
+    # Vietnam
+    "vietnam": "VN",
+    # Indonesia
+    "indonesia": "ID",
+    "indonesien": "ID",
+    # Malaysia
+    "malaysia": "MY",
+    # Singapore
+    "singapore": "SG",
+    "singapur": "SG",
+    # Philippines
+    "philippines": "PH",
+    "philippinen": "PH",
+    # Saudi Arabia
+    "saudi arabia": "SA",
+    "saudi-arabien": "SA",
+    # United Arab Emirates
+    "united arab emirates": "AE",
+    "uae": "AE",
+    "vereinigte arabische emirate": "AE",
+    # Israel
+    "israel": "IL",
+    # Kazakhstan
+    "kazakhstan": "KZ",
+    "kasachstan": "KZ",
+}
 
 
 def _read_text(path: Path) -> str:
@@ -131,6 +379,55 @@ def _parse_frontmatter(text: str) -> tuple[dict[str, Any], str]:
         log.warning("Failed to parse TOML front matter: %s", exc)
         return {}, text
     return meta, body
+
+
+def _normalize_country_key(country: str) -> str:
+    """Normalize country names for robust lookup."""
+    normalized = unicodedata.normalize("NFKD", country)
+    ascii_only = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+    ascii_only = ascii_only.lower()
+    ascii_only = re.sub(r"[^a-z\s]", " ", ascii_only)
+    return re.sub(r"\s+", " ", ascii_only).strip()
+
+
+def _country_code_to_flag(code: str) -> str:
+    """Convert ISO-3166 alpha-2 code to unicode flag emoji."""
+    if len(code) != 2 or not code.isalpha():
+        return ""
+    code = code.upper()
+    base = 127397
+    return chr(base + ord(code[0])) + chr(base + ord(code[1]))
+
+
+def country_to_flag(country: str) -> str:
+    """Return emoji flag for a country name or ISO code."""
+    if not country:
+        return ""
+
+    raw = country.strip()
+    if len(raw) == 2 and raw.isalpha():
+        return _country_code_to_flag(raw)
+
+    code = _COUNTRY_TO_CODE.get(_normalize_country_key(raw), "")
+    if not code:
+        return ""
+    return _country_code_to_flag(code)
+
+
+def _visited_countries(entries: list[Entry]) -> list[dict[str, str]]:
+    """Return unique countries in entry order, each with resolved flag."""
+    seen: set[str] = set()
+    countries: list[dict[str, str]] = []
+    for entry in entries:
+        name = entry.country.strip()
+        if not name:
+            continue
+        key = _normalize_country_key(name)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        countries.append({"name": name, "flag": country_to_flag(name)})
+    return countries
 
 
 def _media_files(media_dir: Path, descriptions: dict[str, str] | None = None) -> list[MediaItem]:
@@ -213,6 +510,7 @@ def load_entry(entry_dir: Path, trip_id: str) -> Entry:
     date_val = meta.get("date", "")
     date = str(date_val) if date_val is not None else ""
     country = str(meta.get("country", ""))
+    country_flag = country_to_flag(country)
     weather = str(meta.get("weather", ""))
     temperature_c = str(meta.get("temperature_c", "")) if "temperature_c" in meta else ""
 
@@ -284,6 +582,7 @@ def load_entry(entry_dir: Path, trip_id: str) -> Entry:
         date=date,
         text_md=text_md,
         country=country,
+        country_flag=country_flag,
         weather=weather,
         temperature_c=temperature_c,
         point_geojson=point_geojson,
@@ -349,11 +648,13 @@ def load_trip(trip_dir: Path) -> Trip:
 
     # Entries
     entries_dir = trip_dir / "entries"
-    entries: list[dict[str, Any]] = []
+    entries: list[Entry] = []
     if entries_dir.is_dir():
         for entry_dir in sorted(entries_dir.iterdir()):
             if entry_dir.is_dir():
                 entries.append(load_entry(entry_dir, trip_id))
+
+    visited_countries = _visited_countries(entries)
 
     return Trip(
         id=trip_id,
@@ -365,6 +666,7 @@ def load_trip(trip_dir: Path) -> Trip:
         route_geojson=route_geojson,
         route_geojson_json=json.dumps(route_geojson) if route_geojson else "null",
         entries=entries,
+        visited_countries=visited_countries,
         extra=extra,
         meta=meta_json,
         source_dir=trip_dir.resolve(),

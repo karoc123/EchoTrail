@@ -120,6 +120,15 @@ class TestBuildIntegration:
         assert "2026-03-31" in html
         assert "2026-04-05" in html
         assert "2026-03-31-berlin" in html
+        assert "🇩🇪" in html
+        assert "🇨🇿" in html
+
+    def test_trip_contains_visited_countries_section(self):
+        html = self._read("trips", "2026-test-tour", "index.html")
+        assert "Visited Countries" in html
+        germany_pos = html.index("Germany")
+        czechia_pos = html.index("Czechia")
+        assert germany_pos < czechia_pos
 
     def test_trip_contains_extra_metadata(self):
         html = self._read("trips", "2026-test-tour", "index.html")
@@ -137,6 +146,7 @@ class TestBuildIntegration:
         )
         assert "2026-03-31" in html
         assert "Germany" in html
+        assert "🇩🇪" in html
 
     def test_entry_berlin_contains_weather(self):
         html = self._read(

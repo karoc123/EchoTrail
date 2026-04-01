@@ -7,7 +7,10 @@
   </nav>
 
   <h1>{% if entry.title %}{{ entry.title }}{% else %}{{ entry.date }}{% if entry.country %} &mdash; {{ entry.country }}{% endif %}{% endif %}</h1>
-  <p class="entry-subtitle">{{ entry.date }}{% if entry.country %} &mdash; {{ entry.country }}{% endif %}</p>
+  <p class="entry-subtitle">
+    {{ entry.date }}{% if entry.country %} &mdash; <span class="entry-subtitle__country">{{ entry.country }}</span>{% if entry.country_flag %}
+    <span class="flag-emoji" aria-label="{{ entry.country }} flag">{{ entry.country_flag }}</span>{% endif %}{% endif %}
+  </p>
 
   <ul class="entry-meta-list">
     {% if entry.weather %}

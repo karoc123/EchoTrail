@@ -14,7 +14,16 @@
     {% endfor %}
   </ul>
 
-  {% if trip.description_md %}
+  {% if trip.visited_countries %}
+  <section class="trip-countries" aria-label="Visited countries">
+    <h2>Visited Countries</h2>
+    <ul class="trip-country-list">
+      {% for country in trip.visited_countries %}
+      <li>{% if country.flag %}<span class="flag-emoji" aria-label="{{ country.name }} flag">{{ country.flag }}</span>{% endif %} <span>{{ country.name }}</span></li>
+      {% endfor %}
+    </ul>
+  </section>
+  {% endif %} {% if trip.description_md %}
   <div class="trip-description">{{ markdown(trip.description_md) }}</div>
   {% endif %} {# Route map #}
   <div id="trip-map" class="map map--route" aria-label="Route map"></div>
@@ -27,7 +36,9 @@
       <li class="entry-item">
         <a href="{{ root_url }}trips/{{ trip.id }}/entries/{{ entry.id }}/index.html">
           <span class="entry-date">{{ entry.date }}</span>
-          {% if entry.title %}<span class="entry-title">{{ entry.title }}</span>{% endif %} {% if entry.country %}<span class="entry-country">{{ entry.country }}</span>{% endif %}
+          {% if entry.title %}<span class="entry-title">{{ entry.title }}</span>{% endif %} {% if entry.country %}<span class="entry-country"
+            >{{ entry.country }}{% if entry.country_flag %} <span class="flag-emoji" aria-label="{{ entry.country }} flag">{{ entry.country_flag }}</span>{% endif %}</span
+          >{% endif %}
         </a>
       </li>
       {% endfor %}
