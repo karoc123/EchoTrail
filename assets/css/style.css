@@ -174,6 +174,11 @@ hr {
   margin-bottom: 0.4rem;
 }
 
+.trip-duration {
+  color: #999;
+  font-size: 0.85em;
+}
+
 .trip-desc {
   font-size: 0.9rem;
   color: #555;

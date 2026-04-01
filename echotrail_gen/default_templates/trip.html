@@ -9,7 +9,9 @@
     <li>🛣 <strong>{{ trip.odometer_km }} km</strong></li>
     {% endif %}
     <li>📍 <strong>{{ trip.entries | length }}</strong> entries</li>
-    {% for key, value in trip.extra.items() %}
+    {% if trip.duration_days %}
+    <li>📅 <strong>{{ trip.duration_days }} day{% if trip.duration_days != 1 %}s{% endif %}</strong></li>
+    {% endif %} {% for key, value in trip.extra.items() %}
     <li>{{ key | replace("_", " ") | title }}: {{ value }}</li>
     {% endfor %}
   </ul>

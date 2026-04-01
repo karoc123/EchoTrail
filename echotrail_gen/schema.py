@@ -29,6 +29,7 @@ import json
 import logging
 import re
 import unicodedata
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
@@ -94,6 +95,10 @@ class Trip(BaseModel):
     route_geojson_json: str = "null"
     entries: list[Entry]
     visited_countries: list[dict[str, str]] = []
+    start_date: str = ""
+    """Date of first entry in ISO format (YYYY-MM-DD), used for sorting."""
+    duration_days: int = 0
+    """Number of days between first and last entry (inclusive)."""
     extra: dict[str, str] = {}
     meta: dict[str, Any] = {}
     source_dir: Path
@@ -489,6 +494,42 @@ def _media_descriptions(entry_dir: Path) -> dict[str, str]:
     return descriptions
 
 
+def _trip_duration(entries: list[Entry]) -> tuple[str, int]:
+    """Calculate trip start date and duration in days.
+    
+    Returns (start_date_iso, duration_days).
+    - start_date_iso: ISO format YYYY-MM-DD of first entry, or "" if no entries
+    - duration_days: Number of days from first to last entry (inclusive)
+    """
+    if not entries:
+        return "", 0
+    
+    # Get all valid dates from entries
+    dates = []
+    for entry in entries:
+        if entry.date and entry.date.strip():
+            try:
+                # Parse as ISO date (YYYY-MM-DD)
+                date_obj = datetime.fromisoformat(entry.date.strip())
+                dates.append((entry.date.strip(), date_obj))
+            except (ValueError, TypeError):
+                pass
+    
+    if not dates:
+        return "", 0
+    
+    # Sort by date
+    dates.sort(key=lambda x: x[1])
+    start_date_str = dates[0][0]
+    end_date_obj = dates[-1][1]
+    start_date_obj = dates[0][1]
+    
+    # Calculate duration in days (inclusive: +1)
+    duration_days = (end_date_obj - start_date_obj).days + 1
+    
+    return start_date_str, duration_days
+
+
 # ---------------------------------------------------------------------------
 # Entry loader
 # ---------------------------------------------------------------------------
@@ -655,6 +696,7 @@ def load_trip(trip_dir: Path) -> Trip:
                 entries.append(load_entry(entry_dir, trip_id))
 
     visited_countries = _visited_countries(entries)
+    start_date, duration_days = _trip_duration(entries)
 
     return Trip(
         id=trip_id,
@@ -667,6 +709,8 @@ def load_trip(trip_dir: Path) -> Trip:
         route_geojson_json=json.dumps(route_geojson) if route_geojson else "null",
         entries=entries,
         visited_countries=visited_countries,
+        start_date=start_date,
+        duration_days=duration_days,
         extra=extra,
         meta=meta_json,
         source_dir=trip_dir.resolve(),
@@ -679,7 +723,10 @@ def load_trip(trip_dir: Path) -> Trip:
 
 
 def load_all_trips(data_dir: Path) -> list[Trip]:
-    """Load every trip found under *data_dir/trips/* and return a list."""
+    """Load every trip found under *data_dir/trips/* and return a list.
+    
+    Trips are sorted by start_date in descending order (newest first).
+    """
     trips_root = data_dir / "trips"
     if not trips_root.is_dir():
         log.warning("No trips directory found at %s", trips_root)
@@ -690,4 +737,7 @@ def load_all_trips(data_dir: Path) -> list[Trip]:
         if trip_dir.is_dir():
             log.info("Loading trip: %s", trip_dir.name)
             trips.append(load_trip(trip_dir))
+    
+    # Sort by start_date descending (newest first)
+    trips.sort(key=lambda t: t.start_date, reverse=True)
     return trips

@@ -188,6 +188,10 @@ class TestLoadTrip:
         assert [c["name"] for c in trip.visited_countries] == ["Germany", "Czechia"]
         assert [c["flag"] for c in trip.visited_countries] == ["🇩🇪", "🇨🇿"]
 
+        # Duration and start date
+        assert trip.start_date == "2026-03-31"
+        assert trip.duration_days == 6  # 31. März to 5. April inclusive
+
         # Extra keys
         assert trip.extra["vehicle"] == "Honda CB 500X"
 
@@ -238,6 +242,29 @@ class TestLoadTrip:
         feat = trip.route_geojson["features"][0]
         assert feat["geometry"]["type"] == "LineString"
 
+    def test_trip_duration_calculation(self, tmp_path: Path):
+        """Test that duration_days is calculated correctly."""
+        trip_dir = tmp_path / "duration-test"
+        trip_dir.mkdir()
+        (trip_dir / "description.md").write_text(
+            "+++\ntitle = 'Duration Test'\n+++\n", encoding="utf-8"
+        )
+        entries_dir = trip_dir / "entries"
+        entries_dir.mkdir()
+        
+        # Create 3 entries spanning 5 days (inclusive)
+        # 2026-05-01, 2026-05-03, 2026-05-05 → 5 days between first and last
+        for i, day in enumerate(["01", "03", "05"], 1):
+            entry_dir = entries_dir / f"2026-05-{day}-day{i}"
+            entry_dir.mkdir()
+            (entry_dir / "text.md").write_text(
+                f"+++\ndate = 2026-05-{day}\n+++\nDay {i}", encoding="utf-8"
+            )
+        
+        trip = load_trip(trip_dir)
+        assert trip.start_date == "2026-05-01"
+        assert trip.duration_days == 5
+
 
 # ── load_all_trips ──────────────────────────────────────────────────────────
 
@@ -258,6 +285,43 @@ class TestLoadAllTrips:
         assert len(trips) == 1
         assert trips[0].title == "Example Europe Trip"
         assert len(trips[0].entries) == 2
+
+    def test_trips_sorted_by_start_date_descending(self, tmp_path: Path):
+        """Test that trips are sorted by start_date in descending order (newest first)."""
+        data_dir = tmp_path / "trips"
+        data_dir.mkdir()
+        
+        # Create 3 trips with different start dates (unsorted order)
+        for trip_name, start_date, end_date in [
+            ("trip-b", "2026-06-01", "2026-06-05"),
+            ("trip-a", "2026-07-01", "2026-07-05"),  # Newest
+            ("trip-c", "2026-05-01", "2026-05-05"),  # Oldest
+        ]:
+            trip_dir = data_dir / trip_name
+            trip_dir.mkdir()
+            (trip_dir / "description.md").write_text(
+                f"+++\ntitle = '{trip_name.title()}'\n+++\n", encoding="utf-8"
+            )
+            entries_dir = trip_dir / "entries"
+            entries_dir.mkdir()
+            
+            for i, date in enumerate([start_date, end_date], 1):
+                entry_dir = entries_dir / f"{date}-entry{i}"
+                entry_dir.mkdir()
+                (entry_dir / "text.md").write_text(
+                    f"+++\ndate = {date}\n+++\nEntry {i}", encoding="utf-8"
+                )
+        
+        trips = load_all_trips(tmp_path)
+        assert len(trips) == 3
+        
+        # Verify descending order (newest first)
+        assert trips[0].id == "trip-a"
+        assert trips[0].start_date == "2026-07-01"
+        assert trips[1].id == "trip-b"
+        assert trips[1].start_date == "2026-06-01"
+        assert trips[2].id == "trip-c"
+        assert trips[2].start_date == "2026-05-01"
 
 
 class TestCountryFlags:

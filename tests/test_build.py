@@ -104,6 +104,10 @@ class TestBuildIntegration:
         html = self._read("index.html")
         assert "2 entries" in html
 
+    def test_index_contains_trip_duration(self):
+        html = self._read("index.html")
+        assert "6 days" in html or "6 day" in html
+
     # -- trip.html --
 
     def test_trip_contains_title(self):
@@ -133,6 +137,10 @@ class TestBuildIntegration:
     def test_trip_contains_extra_metadata(self):
         html = self._read("trips", "2026-test-tour", "index.html")
         assert "Honda CB 500X" in html
+
+    def test_trip_contains_duration(self):
+        html = self._read("trips", "2026-test-tour", "index.html")
+        assert "6 days" in html or "6 day" in html
 
     def test_trip_renders_description_markdown(self):
         html = self._read("trips", "2026-test-tour", "index.html")

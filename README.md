@@ -338,6 +338,8 @@ A `markdown()` helper is available in every template to render Markdown fields a
 
 - Content is loaded into typed `Trip` and `Entry` models (Pydantic) in `echotrail_gen/schema.py`, keeping parsing concerns separate from rendering.
 - The build pipeline in `echotrail_gen/builder.py` consumes those models to render templates and copy media/assets.
+- **Trips are automatically sorted by start date in descending order (newest first)** in both the index page and internally.
+- Trip duration is calculated as the number of days between the first and last entry (inclusive), based on entry `date` fields.
 - During the build, images are automatically resized to web-friendly dimensions (max 1600 px) and JPEG thumbnails (max 400 px) are generated for the gallery.
 - The entry page shows a thumbnail grid with a [GLightbox](https://biati-digital.github.io/glightbox/) lightbox for full-screen browsing.
 - All builds assume Python 3.12+; older Python versions are not supported.
@@ -359,6 +361,8 @@ A `markdown()` helper is available in every template to render Markdown fields a
 | `route_geojson_json` | str          | JSON-serialised route (safe to embed in `<script>`)        |
 | `entries`            | list         | List of Entry objects                                      |
 | `visited_countries`  | list         | Unique countries in entry order, each with `name` + `flag` |
+| `start_date`         | str          | ISO date (YYYY-MM-DD) of first entry; used for sorting     |
+| `duration_days`      | int          | Number of days between first and last entry (inclusive)    |
 | `extra`              | dict         | Extra front matter keys not in the known set               |
 | `meta`               | dict         | Parsed `meta.json` (empty dict if absent)                  |
 | `url`                | str          | Relative URL from `dist/` root                             |
