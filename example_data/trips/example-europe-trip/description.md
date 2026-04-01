@@ -1,5 +1,5 @@
 +++
-title = 'Example Europe Trip'
+title = 'Example Europe Trip for Demo'
 odometer_km = '3,240'
 +++
 
