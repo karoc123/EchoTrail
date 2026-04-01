@@ -14,10 +14,11 @@ Install the required dependencies:
 pip install requests beautifulsoup4
 ```
 
-Or install with the scraper optional dependencies:
+Or install with the scraper optional dependencies (includes Playwright for dynamic loading):
 
 ```bash
 pip install -e ".[scraper]"
+playwright install chromium  # Only needed for Playwright browser support
 ```
 
 ### Usage
@@ -47,6 +48,7 @@ imported/trips/winter-is-coming/
 
 - `--output DIR`: Specify the base output directory (default: `imported`)
 - `--verbose`, `-v`: Enable verbose logging for debugging
+- `--no-browser`: Skip Playwright browser automation and use requests only (may miss dynamically loaded content)
 
 ### Examples
 
@@ -79,6 +81,8 @@ The scraper attempts to extract:
   - Weather and temperature (if available)
   - Images and photos
   - Image descriptions/captions (when available) written to `media.json`
+
+**Note:** The scraper uses Playwright (headless browser) to handle FindPenguins' dynamic "Load more" pagination. If Playwright is not installed, it falls back to a single-pass requests-based fetch, which may miss some articles on trips with pagination.
 
 ### Integration with EchoTrail
 

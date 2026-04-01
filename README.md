@@ -247,21 +247,24 @@ EchoTrail includes helper scripts to import trips from external travel platforms
 Import a trip from FindPenguins:
 
 ```bash
-# Install scraper dependencies
+# Install scraper dependencies (includes Playwright for full pagination support)
 pip install -e ".[scraper]"
+playwright install chromium
 
 # Scrape a FindPenguins trip
 python helpers/findpenguins_scraper.py https://findpenguins.com/username/trip/trip-name
 
-# This creates: imported/trip/trip-name/
+# This creates: imported/trips/trip-name/
 # Move it to your data directory
-mv imported/trip/trip-name data/trips/
+mv imported/trips/trip-name data/trips/
 ```
 
 The scraper will:
+
 - Create the trip structure with `description.md`
 - Extract all entries/posts with dates, locations, and content
-- Download images to `media/` directories
+- Handle paginated "Load more" buttons to capture all articles
+- Download images to `media/` directories with metadata
 - Generate proper TOML front matter for each entry
 
 See [`helpers/README.md`](helpers/README.md) for detailed documentation.

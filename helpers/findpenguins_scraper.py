@@ -36,6 +36,12 @@ except ImportError:
     print("Install with: pip install requests beautifulsoup4", file=sys.stderr)
     sys.exit(1)
 
+try:
+    from playwright.sync_api import sync_playwright
+    HAS_PLAYWRIGHT = True
+except ImportError:
+    HAS_PLAYWRIGHT = False
+
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 log = logging.getLogger(__name__)
 
@@ -189,6 +195,65 @@ def _extract_photos(article: Tag, base_url: str) -> list[dict[str, str]]:
     return photos
 
 
+def _fetch_page_with_playwright(url: str) -> str | None:
+    """Fetch a trip page using Playwright to handle dynamic 'Load more' buttons.
+
+    Returns the full page HTML after all dynamically loaded articles are fetched,
+    or None if Playwright is not available.
+    """
+    if not HAS_PLAYWRIGHT:
+        return None
+
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch(headless=True)
+            page = browser.new_page()
+            page.goto(url, wait_until="networkidle", timeout=60000)
+
+            # Close cookie popup if present (FindPenguins uses one)
+            try:
+                cookie_accept = page.locator('a[onclick*="acceptCookies"], button:has-text("Accept")')
+                if cookie_accept.count() > 0:
+                    log.debug("  Accepting cookies popup")
+                    cookie_accept.first.click()
+                    page.wait_for_timeout(500)
+            except Exception as e:
+                log.debug(f"  No cookie popup found: {e}")
+
+            # Poll for "Load more" button and click it until articles stop loading
+            max_iterations = 100  # Safety limit
+            iteration = 0
+            while iteration < max_iterations:
+                try:
+                    # Look for the "Load more" button (German: "Mehr" or English text)
+                    load_more = page.locator(
+                        'button:has-text("Load more"), button:has-text("Mehr"), a:has-text("Load more"), a.loadmoreBtn'
+                    )
+
+                    if load_more.count() > 0:
+                        log.debug(f"  Clicking 'Load more' button (iteration {iteration + 1})")
+                        # Scroll into view and click
+                        load_more.first.scroll_into_view_if_needed()
+                        load_more.first.click()
+                        # Wait for new articles to render
+                        page.wait_for_timeout(2000)
+                        iteration += 1
+                    else:
+                        log.debug("  No more 'Load more' button found")
+                        break
+                except Exception as e:
+                    log.debug(f"  No more buttons to click or error: {e}")
+                    break
+
+            html = page.inner_html("body")
+            browser.close()
+            return html
+
+    except Exception as e:
+        log.warning(f"Playwright loading failed, falling back to requests: {e}")
+        return None
+
+
 def _fetch_coordinates(
     footprint_url: str, session: requests.Session
 ) -> tuple[float | None, float | None]:
@@ -213,12 +278,17 @@ def _fetch_coordinates(
     return None, None
 
 
-def scrape_findpenguins_trip(url: str, output_base: Path = Path("imported")) -> None:
+def scrape_findpenguins_trip(
+    url: str,
+    output_base: Path = Path("imported"),
+    use_browser: bool = True,
+) -> None:
     """Scrape a FindPenguins trip and create EchoTrail folder structure.
 
     Args:
         url: FindPenguins trip URL
         output_base: Base directory for output (default: 'imported')
+        use_browser: Use Playwright browser for dynamic loading (default: True)
     """
     parsed = urlparse(url)
     path_parts = [p for p in parsed.path.split('/') if p]
@@ -242,11 +312,19 @@ def scrape_findpenguins_trip(url: str, output_base: Path = Path("imported")) -> 
     })
 
     try:
-        log.info("Fetching trip page...")
-        response = session.get(url, timeout=30)
-        response.raise_for_status()
+        # Try Playwright first for dynamic loading, fall back to requests if unavailable
+        html_content = None
+        if use_browser:
+            log.info("Fetching trip page with browser (for dynamic loading)...")
+            html_content = _fetch_page_with_playwright(url)
 
-        soup = BeautifulSoup(response.text, 'html.parser')
+        if html_content is None:
+            log.info("Fetching trip page with requests...")
+            response = session.get(url, timeout=30)
+            response.raise_for_status()
+            html_content = response.text
+
+        soup = BeautifulSoup(html_content, 'html.parser')
 
         # --- Trip metadata ---
         trip_title = None
@@ -441,6 +519,11 @@ Examples:
         action='store_true',
         help='Enable verbose logging'
     )
+    parser.add_argument(
+        '--no-browser',
+        action='store_true',
+        help='Skip Playwright browser and use requests only (misses dynamically loaded content)'
+    )
 
     args = parser.parse_args()
 
@@ -448,7 +531,14 @@ Examples:
         logging.getLogger().setLevel(logging.DEBUG)
 
     output_path = Path(args.output)
-    scrape_findpenguins_trip(args.url, output_path)
+    use_browser = not args.no_browser
+    if not HAS_PLAYWRIGHT and use_browser:
+        log.warning(
+            "Playwright not installed. Install it with: pip install playwright\n"
+            "Then run: playwright install chromium\n"
+            "Falling back to requests (may miss dynamically loaded articles).")
+
+    scrape_findpenguins_trip(args.url, output_path, use_browser=use_browser)
 
 
 if __name__ == '__main__':
