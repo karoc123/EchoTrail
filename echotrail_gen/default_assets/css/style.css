@@ -410,6 +410,10 @@ hr {
   gap: 0.5rem;
 }
 
+.gallery-image {
+  margin: 0;
+}
+
 .gallery-thumb {
   display: block;
   overflow: hidden;
@@ -452,6 +456,13 @@ hr {
 
 .gallery-thumb:hover img {
   transform: scale(1.04);
+}
+
+.gallery-caption {
+  margin: 0.35rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  color: #555;
 }
 
 .gallery-video {

@@ -157,6 +157,17 @@ def data_dir(tmp_path: Path) -> Path:
     media.mkdir()
     _create_test_jpeg(media / "foto1.jpg", 2000, 1500)
     (media / "clip.mp4").write_bytes(b"\x00\x00fake-mp4")
+    (entry_berlin / "media.json").write_text(
+        json.dumps(
+            {
+                "media": [
+                    {"name": "foto1.jpg", "description": "Berlin TV Tower at sunrise"},
+                    {"name": "clip.mp4", "description": "Morning traffic time-lapse"},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
 
     # Prague entry (no media)
     (entry_prague / "text.md").write_text(SAMPLE_ENTRY_PRAGUE, encoding="utf-8")

@@ -166,6 +166,9 @@ class TestBuildIntegration:
         assert 'class="glightbox' in html
         assert 'href="media/foto1.jpg"' in html
         assert 'src="media/thumb_foto1.jpg"' in html
+        assert 'alt="Berlin TV Tower at sunrise"' in html
+        assert 'data-title="Berlin TV Tower at sunrise"' in html
+        assert "Berlin TV Tower at sunrise" in html
         assert "<video" in html
         assert "clip.mp4" in html
 

@@ -142,7 +142,8 @@ def _extract_entry_text(article: Tag) -> str:
 def _extract_photos(article: Tag, base_url: str) -> list[dict[str, str]]:
     """Extract photo URLs from the .images-container in an article.
 
-    Returns list of dicts with 'url' (large version) and 'filename'.
+    Returns list of dicts with 'url' (large version), 'filename', and
+    optional 'description'.
     """
     photos: list[dict[str, str]] = []
     container = article.find('div', class_='images-container')
@@ -160,7 +161,30 @@ def _extract_photos(article: Tag, base_url: str) -> list[dict[str, str]]:
         abs_url = _img_url_to_large(abs_url)
 
         filename = data_filename or abs_url.split('/')[-1]
-        photos.append({'url': abs_url, 'filename': filename})
+
+        # Try multiple possible caption sources used in FindPenguins markup.
+        desc_candidates = [
+            a_tag.get('data-description', ''),
+            a_tag.get('data-caption', ''),
+            a_tag.get('title', ''),
+            a_tag.get('aria-label', ''),
+        ]
+
+        img_tag = a_tag.find('img')
+        if img_tag:
+            desc_candidates.extend([
+                img_tag.get('alt', ''),
+                img_tag.get('title', ''),
+            ])
+
+        caption = ""
+        for candidate in desc_candidates:
+            cleaned = re.sub(r'\s+', ' ', candidate).strip()
+            if cleaned:
+                caption = cleaned
+                break
+
+        photos.append({'url': abs_url, 'filename': filename, 'description': caption})
 
     return photos
 
@@ -306,6 +330,7 @@ source_url = '{url}'
                 # --- Photos ---
                 photos = _extract_photos(article, url)
                 image_count = 0
+                media_items: list[dict[str, str]] = []
                 if photos:
                     media_dir = entry_dir / "media"
                     media_dir.mkdir(exist_ok=True)
@@ -313,6 +338,17 @@ source_url = '{url}'
                         dest = media_dir / photo['filename']
                         if download_image(photo['url'], dest, session):
                             image_count += 1
+                            media_items.append({
+                                'name': photo['filename'],
+                                'description': photo.get('description', ''),
+                            })
+
+                if media_items:
+                    media_json_path = entry_dir / "media.json"
+                    media_json_path.write_text(
+                        json.dumps({'media': media_items}, indent=2, ensure_ascii=False),
+                        encoding='utf-8',
+                    )
 
                 # --- Write text.md ---
                 lines = ["+++"]

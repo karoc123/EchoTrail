@@ -112,6 +112,9 @@ class TestLoadEntry:
         names = [m.name for m in entry.media]
         assert "foto1.jpg" in names
         assert "clip.mp4" in names
+        media_by_name = {m.name: m for m in entry.media}
+        assert media_by_name["foto1.jpg"].description == "Berlin TV Tower at sunrise"
+        assert media_by_name["clip.mp4"].description == "Morning traffic time-lapse"
 
         # URL
         assert entry.url == "trips/2026-test-tour/entries/2026-03-31-berlin/"
@@ -132,6 +135,21 @@ class TestLoadEntry:
         assert entry.point_geojson_json == "null"
         assert entry.media == []
         assert entry.text_md == "Hello."
+
+    def test_entry_ignores_invalid_media_json(self, tmp_path: Path):
+        entry_dir = tmp_path / "invalid-media"
+        entry_dir.mkdir()
+        (entry_dir / "text.md").write_text(
+            "+++\ndate = 2026-01-01\n+++\nHello.", encoding="utf-8"
+        )
+        media_dir = entry_dir / "media"
+        media_dir.mkdir()
+        (media_dir / "x.jpg").write_bytes(b"img")
+        (entry_dir / "media.json").write_text("{broken", encoding="utf-8")
+
+        entry = load_entry(entry_dir, "trip-x")
+        assert len(entry.media) == 1
+        assert entry.media[0].description == ""
 
     def test_extra_keys(self, tmp_path: Path):
         entry_dir = tmp_path / "extra"

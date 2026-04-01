@@ -18,6 +18,7 @@ Directory layout expected::
           entries/
             <entry_id>/
               text.md           (with +++ front matter: date, country, lat, lon, …)
+                            media.json        (optional media metadata, e.g. image descriptions)
               media/
                 *.jpg / *.png / *.mp4 …
 """
@@ -52,6 +53,7 @@ class MediaItem(BaseModel):
     type: Literal["image", "video"]
     name: str
     thumb_name: str = ""
+    description: str = ""
 
 
 class Entry(BaseModel):
@@ -131,18 +133,63 @@ def _parse_frontmatter(text: str) -> tuple[dict[str, Any], str]:
     return meta, body
 
 
-def _media_files(media_dir: Path) -> list[MediaItem]:
+def _media_files(media_dir: Path, descriptions: dict[str, str] | None = None) -> list[MediaItem]:
     """Return sorted list of media file descriptors from *media_dir*."""
     if not media_dir.is_dir():
         return []
+    descriptions = descriptions or {}
     files: list[MediaItem] = []
     for p in sorted(media_dir.iterdir()):
         ext = p.suffix.lower()
         if ext in _IMAGE_EXTS:
-            files.append(MediaItem(type="image", name=p.name, thumb_name=_thumb_name(p.name)))
+            files.append(
+                MediaItem(
+                    type="image",
+                    name=p.name,
+                    thumb_name=_thumb_name(p.name),
+                    description=descriptions.get(p.name, ""),
+                )
+            )
         elif ext in _VIDEO_EXTS:
-            files.append(MediaItem(type="video", name=p.name))
+            files.append(
+                MediaItem(
+                    type="video",
+                    name=p.name,
+                    description=descriptions.get(p.name, ""),
+                )
+            )
     return files
+
+
+def _media_descriptions(entry_dir: Path) -> dict[str, str]:
+    """Load media descriptions from optional ``media.json`` in *entry_dir*."""
+    media_meta_path = entry_dir / "media.json"
+    if not media_meta_path.exists():
+        return {}
+
+    try:
+        payload = json.loads(media_meta_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        log.warning("Could not parse %s: %s", media_meta_path, exc)
+        return {}
+
+    if isinstance(payload, dict):
+        raw_items = payload.get("media", payload.get("items", []))
+    elif isinstance(payload, list):
+        raw_items = payload
+    else:
+        return {}
+
+    descriptions: dict[str, str] = {}
+    for item in raw_items:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name", "")).strip()
+        if not name:
+            continue
+        description = str(item.get("description", "")).strip()
+        descriptions[name] = description
+    return descriptions
 
 
 # ---------------------------------------------------------------------------
@@ -224,7 +271,10 @@ def load_entry(entry_dir: Path, trip_id: str) -> Entry:
     extra = {k: str(v) for k, v in meta.items() if k not in _ENTRY_KNOWN_KEYS}
 
     # Media
-    media = _media_files(entry_dir / "media")
+    media = _media_files(
+        entry_dir / "media",
+        descriptions=_media_descriptions(entry_dir),
+    )
 
     return Entry(
         id=entry_id,

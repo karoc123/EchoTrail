@@ -23,9 +23,14 @@
   <section class="media-gallery">
     <div class="gallery-grid">
       {% for item in entry.media %} {% if item.type == "image" %}
-      <a href="media/{{ item.name }}" class="glightbox gallery-thumb" data-gallery="entry-gallery">
-        <img src="media/{{ item.thumb_name }}" alt="{{ item.name }}" loading="lazy" />
-      </a>
+      <figure class="gallery-image">
+        <a href="media/{{ item.name }}" class="glightbox gallery-thumb" data-gallery="entry-gallery" {% if item.description %}data-title="{{ item.description }}" {% endif %}>
+          <img src="media/{{ item.thumb_name }}" alt="{{ item.description or item.name }}" loading="lazy" />
+        </a>
+        {% if item.description %}
+        <figcaption class="gallery-caption">{{ item.description }}</figcaption>
+        {% endif %}
+      </figure>
       {% elif item.type == "video" %}
       <figure class="gallery-video">
         <video controls preload="none">

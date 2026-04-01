@@ -35,6 +35,7 @@ imported/trips/winter-is-coming/
 └── entries/
   ├── 2025-11-10-entry-title/
   │   ├── text.md         # Entry content with TOML front matter and Markdown body
+  │   ├── media.json      # Per-file media metadata (e.g. image descriptions)
     │   └── media/
   │       ├── original-photo-name.jpg
   │       └── another-photo-name.jpg
@@ -77,6 +78,7 @@ The scraper attempts to extract:
   - GPS coordinates (if available)
   - Weather and temperature (if available)
   - Images and photos
+  - Image descriptions/captions (when available) written to `media.json`
 
 ### Integration with EchoTrail
 
@@ -123,4 +125,5 @@ If the scraper fails or produces incomplete results:
 - Images are downloaded to preserve the complete trip
 - Entry files include a Markdown heading, which EchoTrail uses as the entry title
 - The front matter preserves extracted metadata such as `country`, `weather`, `temperature_c`, and `point_name` when available
+- EchoTrail reads `media.json` and renders image descriptions in the gallery (caption + lightbox text)
 - The source URL is recorded in the trip description for reference
