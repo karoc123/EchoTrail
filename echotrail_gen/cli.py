@@ -45,6 +45,12 @@ def main(argv=None):
         default=False,
         help="Download Leaflet vendor files into the output during build.",
     )
+    build_parser.add_argument(
+        "--exclude-videos",
+        action="store_true",
+        default=False,
+        help="Exclude video files from media galleries (reduces output size).",
+    )
 
     fetch_parser = sub.add_parser(
         "fetch-vendor",
@@ -66,6 +72,7 @@ def main(argv=None):
             templates_dir=args.templates,
             assets_dir=args.assets,
             fetch_leaflet=args.fetch_vendor,
+            skip_videos=args.exclude_videos,
         )
     elif args.command == "fetch-vendor":
         fetch_vendor(assets_dir=args.assets)

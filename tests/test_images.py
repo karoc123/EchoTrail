@@ -96,6 +96,16 @@ class TestProcessEntryMedia:
         # No thumbnail for videos
         assert not (dst / "thumb_clip.jpg").exists()
 
+    def test_excludes_video_when_requested(self, tmp_path: Path):
+        src = tmp_path / "src_media"
+        dst = tmp_path / "dst_media"
+        src.mkdir()
+        (src / "clip.mp4").write_bytes(b"\x00\x00fake-mp4-data")
+
+        process_entry_media(src, dst, skip_videos=True)
+
+        assert not (dst / "clip.mp4").exists()
+
     def test_skips_dotfiles(self, tmp_path: Path):
         src = tmp_path / "src_media"
         dst = tmp_path / "dst_media"

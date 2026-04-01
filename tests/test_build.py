@@ -156,6 +156,38 @@ class TestBuildIntegration:
         assert "Germany" in html
         assert "🇩🇪" in html
 
+
+    def test_exclude_videos_removes_video_from_output(
+        self,
+        tmp_path: Path,
+        data_dir: Path,
+        templates_dir: Path,
+        assets_dir: Path,
+    ):
+        dist = tmp_path / "dist-no-videos"
+        build(
+            data_dir=str(data_dir),
+            output_dir=str(dist),
+            templates_dir=str(templates_dir),
+            assets_dir=str(assets_dir),
+            skip_videos=True,
+        )
+
+        media_dir = dist / "trips" / "2026-test-tour" / "entries" / "2026-03-31-berlin" / "media"
+        assert media_dir.is_dir()
+        assert (media_dir / "foto1.jpg").exists()
+        assert not (media_dir / "clip.mp4").exists()
+
+        entry_html = (
+            dist
+            / "trips"
+            / "2026-test-tour"
+            / "entries"
+            / "2026-03-31-berlin"
+            / "index.html"
+        ).read_text(encoding="utf-8")
+        assert "clip.mp4" not in entry_html
+
     def test_entry_berlin_contains_weather(self):
         html = self._read(
             "trips", "2026-test-tour", "entries", "2026-03-31-berlin", "index.html"

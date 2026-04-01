@@ -539,7 +539,7 @@ _ENTRY_KNOWN_KEYS = {"date", "country", "weather", "temperature_c", "lat", "lon"
 _HEADING_RE = re.compile(r"^#\s+(.+)$", re.MULTILINE)
 
 
-def load_entry(entry_dir: Path, trip_id: str) -> Entry:
+def load_entry(entry_dir: Path, trip_id: str, skip_videos: bool = False) -> Entry:
     """Load one entry directory and return an Entry model."""
     entry_id = entry_dir.name
 
@@ -614,6 +614,10 @@ def load_entry(entry_dir: Path, trip_id: str) -> Entry:
         entry_dir / "media",
         descriptions=_media_descriptions(entry_dir),
     )
+    
+    # Filter out videos if requested
+    if skip_videos:
+        media = [m for m in media if m.type != "video"]
 
     return Entry(
         id=entry_id,
@@ -641,7 +645,7 @@ def load_entry(entry_dir: Path, trip_id: str) -> Entry:
 _TRIP_KNOWN_KEYS = {"title", "odometer_km"}
 
 
-def load_trip(trip_dir: Path) -> Trip:
+def load_trip(trip_dir: Path, skip_videos: bool = False) -> Trip:
     """Load one trip directory and return a Trip model."""
     trip_id = trip_dir.name
 
@@ -693,7 +697,7 @@ def load_trip(trip_dir: Path) -> Trip:
     if entries_dir.is_dir():
         for entry_dir in sorted(entries_dir.iterdir()):
             if entry_dir.is_dir():
-                entries.append(load_entry(entry_dir, trip_id))
+                entries.append(load_entry(entry_dir, trip_id, skip_videos=skip_videos))
 
     visited_countries = _visited_countries(entries)
     start_date, duration_days = _trip_duration(entries)
@@ -722,8 +726,10 @@ def load_trip(trip_dir: Path) -> Trip:
 # ---------------------------------------------------------------------------
 
 
-def load_all_trips(data_dir: Path) -> list[Trip]:
+def load_all_trips(data_dir: Path, skip_videos: bool = False) -> list[Trip]:
     """Load every trip found under *data_dir/trips/* and return a list.
+    
+    When *skip_videos* is True, video files are excluded from media galleries.
     
     Trips are sorted by start_date in descending order (newest first).
     """
@@ -736,7 +742,7 @@ def load_all_trips(data_dir: Path) -> list[Trip]:
     for trip_dir in sorted(trips_root.iterdir()):
         if trip_dir.is_dir():
             log.info("Loading trip: %s", trip_dir.name)
-            trips.append(load_trip(trip_dir))
+            trips.append(load_trip(trip_dir, skip_videos=skip_videos))
     
     # Sort by start_date descending (newest first)
     trips.sort(key=lambda t: t.start_date, reverse=True)

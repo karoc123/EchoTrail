@@ -27,6 +27,7 @@ class TestCli:
         assert captured["templates_dir"] is None
         assert captured["assets_dir"] is None
         assert captured["fetch_leaflet"] is False
+        assert captured["skip_videos"] is False
 
     def test_build_custom_dirs(self, monkeypatch):
         captured = {}
@@ -52,6 +53,17 @@ class TestCli:
         main(["build", "--fetch-vendor"])
 
         assert captured["fetch_leaflet"] is True
+
+    def test_build_exclude_videos_flag(self, monkeypatch):
+        captured = {}
+
+        def fake_build(**kwargs):
+            captured.update(kwargs)
+
+        monkeypatch.setattr("echotrail_gen.cli.build", fake_build)
+        main(["build", "--exclude-videos"])
+
+        assert captured["skip_videos"] is True
 
     def test_fetch_vendor_defaults(self, monkeypatch):
         captured = {}

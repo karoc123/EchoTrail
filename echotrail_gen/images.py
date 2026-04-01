@@ -61,14 +61,14 @@ def thumb_name(original: str) -> str:
     return f"thumb_{p.stem}.jpg"
 
 
-def process_entry_media(src_dir: Path, dst_dir: Path) -> None:
+def process_entry_media(src_dir: Path, dst_dir: Path, *, skip_videos: bool = False) -> None:
     """Copy media from *src_dir* to *dst_dir*, resizing images.
 
     For each image file:
     - ``<name>``  → web-sized JPEG (max 1600 px)
     - ``thumb_<stem>.jpg`` → thumbnail JPEG (max 400 px)
 
-    Non-image files (videos) are copied unchanged.
+    Non-image files (videos) are copied unchanged unless *skip_videos* is True.
     """
     if not src_dir.is_dir():
         return
@@ -98,5 +98,7 @@ def process_entry_media(src_dir: Path, dst_dir: Path) -> None:
                 log.warning("Could not create thumbnail for %s: %s", src_file, exc)
                 # Note: No fallback for thumbnails - gallery will handle missing thumbs
         else:
+            if skip_videos:
+                continue
             # Videos and other files: copy unchanged
             shutil.copy2(src_file, dst_dir / src_file.name)

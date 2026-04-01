@@ -1,42 +1,46 @@
-name: 'EchoTrail Build'
-description: 'Build an EchoTrail static travel journal from a content directory.'
+name: "EchoTrail Build"
+description: "Build an EchoTrail static travel journal from a content directory."
 branding:
-  icon: 'map'
-  color: 'orange'
+  icon: "map"
+  color: "orange"
 
 inputs:
   data-dir:
-    description: 'Content directory containing trips/ subdirectory.'
+    description: "Content directory containing trips/ subdirectory."
     required: false
-    default: 'data'
+    default: "data"
   output-dir:
-    description: 'Where to write the generated site.'
+    description: "Where to write the generated site."
     required: false
-    default: 'dist'
+    default: "dist"
   templates-dir:
-    description: 'Custom Jinja2 templates directory. Leave empty to use the bundled default theme.'
+    description: "Custom Jinja2 templates directory. Leave empty to use the bundled default theme."
     required: false
-    default: ''
+    default: ""
   assets-dir:
-    description: 'Custom assets directory (CSS, etc.). Leave empty to use the bundled default theme.'
+    description: "Custom assets directory (CSS, etc.). Leave empty to use the bundled default theme."
     required: false
-    default: ''
+    default: ""
   python-version:
-    description: 'Python version to use.'
+    description: "Python version to use."
     required: false
-    default: '3.12'
+    default: "3.12"
   fetch-vendor:
     description: 'Download Leaflet vendor files during the build (set to "false" to skip).'
     required: false
-    default: 'true'
+    default: "true"
+  exclude-videos:
+    description: 'Exclude video files from generated output to reduce dist size (set to "true" to enable).'
+    required: false
+    default: "false"
 
 outputs:
   output-dir:
-    description: 'Path of the built site.'
+    description: "Path of the built site."
     value: ${{ inputs.output-dir }}
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -59,5 +63,8 @@ runs:
         fi
         if [ "${{ inputs.fetch-vendor }}" = "true" ]; then
           ARGS="$ARGS --fetch-vendor"
+        fi
+        if [ "${{ inputs.exclude-videos }}" = "true" ]; then
+          ARGS="$ARGS --exclude-videos"
         fi
         python -m echotrail_gen build $ARGS

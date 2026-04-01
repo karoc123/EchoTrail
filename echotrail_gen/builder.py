@@ -172,6 +172,7 @@ def build(
     templates_dir: str | None = None,
     assets_dir: str | None = None,
     fetch_leaflet: bool = False,
+    skip_videos: bool = False,
 ) -> BuildResult:
     """Build the complete static site into *output_dir*.
 
@@ -181,6 +182,10 @@ def build(
 
     When *fetch_leaflet* is ``True``, Leaflet vendor files are downloaded
     directly into the output assets directory during the build.
+
+    When *skip_videos* is ``True``, video files are excluded from media
+    galleries and not copied to the output directory, reducing output size.
+
 
     Returns:
         BuildResult: Structured information about the build outcome including
@@ -214,7 +219,7 @@ def build(
 
         # --- Load data ---
         log.info("Loading content from %s …", data_path)
-        trips = load_all_trips(data_path)
+        trips = load_all_trips(data_path, skip_videos=skip_videos)
         log.info("Found %d trip(s).", len(trips))
 
         # --- Clean output directory ---
@@ -237,7 +242,7 @@ def build(
         # --- Render trip + entry pages ---
         entries_count = 0
         for trip in trips:
-            _render_trip_page(env, trip, out_path)
+            _render_trip_page(env, trip, out_path, skip_videos=skip_videos)
             entries_count += len(trip.entries)
             for index, entry in enumerate(trip.entries):
                 prev_entry = trip.entries[index - 1] if index > 0 else None
@@ -275,14 +280,20 @@ def _render_trips_index(env: Environment, trips: list[Trip], out_path: Path) -> 
     log.info("Rendered trips index → index.html")
 
 
-def _render_trip_page(env: Environment, trip: Trip, out_path: Path) -> None:
+def _render_trip_page(
+    env: Environment,
+    trip: Trip,
+    out_path: Path,
+    *,
+    skip_videos: bool = False,
+) -> None:
     tpl = env.get_template("trip.html")
     html = tpl.render(trip=trip, page_title=trip.title)
     _write(out_path / "trips" / trip.id / "index.html", html)
     log.info("Rendered trip: %s", trip.id)
 
     # Copy trip media (cover + entry media)
-    _copy_trip_media(trip, out_path)
+    _copy_trip_media(trip, out_path, skip_videos=skip_videos)
 
 
 def _render_entry_page(
@@ -308,7 +319,7 @@ def _render_entry_page(
     log.info("  Rendered entry: %s/%s", trip.id, entry.id)
 
 
-def _copy_trip_media(trip: Trip, out_path: Path) -> None:
+def _copy_trip_media(trip: Trip, out_path: Path, *, skip_videos: bool = False) -> None:
     """Copy trip cover image and all entry media files to dist/."""
     trip_src = trip.source_dir
 
@@ -328,4 +339,4 @@ def _copy_trip_media(trip: Trip, out_path: Path) -> None:
         entry_dst = out_path / "trips" / trip.id / "entries" / entry.id / "media"
         if entry_dst.exists():
             shutil.rmtree(entry_dst)
-        process_entry_media(entry_src, entry_dst)
+        process_entry_media(entry_src, entry_dst, skip_videos=skip_videos)

@@ -153,6 +153,14 @@ class TestLoadEntry:
         assert len(entry.media) == 1
         assert entry.media[0].description == ""
 
+    def test_entry_excludes_videos_when_requested(self, data_dir: Path):
+        entry_dir = data_dir / "trips" / "2026-test-tour" / "entries" / "2026-03-31-berlin"
+        entry = load_entry(entry_dir, "2026-test-tour", skip_videos=True)
+
+        assert len(entry.media) == 1
+        assert entry.media[0].type == "image"
+        assert entry.media[0].name == "foto1.jpg"
+
     def test_extra_keys(self, tmp_path: Path):
         entry_dir = tmp_path / "extra"
         entry_dir.mkdir()
@@ -285,6 +293,12 @@ class TestLoadAllTrips:
         assert len(trips) == 1
         assert trips[0].title == "Example Europe Trip"
         assert len(trips[0].entries) == 2
+
+    def test_load_all_trips_excludes_videos_when_requested(self, data_dir: Path):
+        trips = load_all_trips(data_dir, skip_videos=True)
+        assert len(trips) == 1
+        media = trips[0].entries[0].media
+        assert all(item.type != "video" for item in media)
 
     def test_trips_sorted_by_start_date_descending(self, tmp_path: Path):
         """Test that trips are sorted by start_date in descending order (newest first)."""
