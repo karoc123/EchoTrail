@@ -7,7 +7,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
-from echotrail_gen.exceptions import GeoProcessingError
+from tracevoyage_gen.exceptions import GeoProcessingError
 
 
 def load_geojson(path: Path) -> dict[str, Any]:

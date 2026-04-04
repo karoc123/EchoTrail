@@ -140,7 +140,7 @@ class SyncNotifier extends AsyncNotifier<SyncState> {
         // Force-write: always fetch current remote SHA first.
         final sha = await github.getFileSha(repoPath);
         await github.uploadFile(repoPath, content,
-            sha: sha, message: 'Update $repoPath via EchoTrail app');
+            sha: sha, message: 'Update $repoPath via TraceVoyage app');
         await _storage.markSynced(relativePath);
       }
 

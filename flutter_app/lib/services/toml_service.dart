@@ -1,4 +1,4 @@
-/// Minimal parser/serializer for EchoTrail's TOML-style front matter.
+/// Minimal parser/serializer for TraceVoyage's TOML-style front matter.
 ///
 /// Format:
 /// ```

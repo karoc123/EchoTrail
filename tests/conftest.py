@@ -1,4 +1,4 @@
-"""Shared fixtures for EchoTrail tests."""
+"""Shared fixtures for TraceVoyage tests."""
 
 from __future__ import annotations
 
@@ -32,7 +32,7 @@ def templates_dir(tmp_path: Path) -> Path:
     Copies the bundled default templates so integration tests exercise
     actual markup.
     """
-    from echotrail_gen.builder import _bundled_templates
+    from tracevoyage_gen.builder import _bundled_templates
 
     tpl = tmp_path / "templates"
     tpl.mkdir()

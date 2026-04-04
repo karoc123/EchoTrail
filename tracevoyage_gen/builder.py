@@ -2,12 +2,12 @@
 
 Usage::
 
-    from echotrail_gen.builder import build
+    from tracevoyage_gen.builder import build
     build(data_dir="data", output_dir="dist")
 
 Or via the CLI::
 
-    python -m echotrail_gen build
+    python -m tracevoyage_gen build
 """
 
 from __future__ import annotations
@@ -20,9 +20,9 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from markdown import markdown as md_markdown
 from markupsafe import Markup
 
-from echotrail_gen.exceptions import TemplateNotFoundError
-from echotrail_gen.schema import Entry, Trip, load_all_trips
-from echotrail_gen.images import process_entry_media
+from tracevoyage_gen.exceptions import TemplateNotFoundError
+from tracevoyage_gen.schema import Entry, Trip, load_all_trips
+from tracevoyage_gen.images import process_entry_media
 
 log = logging.getLogger(__name__)
 
@@ -155,7 +155,7 @@ def _check_vendor(assets_dir: Path) -> None:
     if not leaflet_js.exists() or leaflet_js.stat().st_size == 0:
         log.warning(
             "Leaflet JS not found at %s.\n"
-            "Run `python -m echotrail_gen fetch-vendor` first, "
+            "Run `python -m tracevoyage_gen fetch-vendor` first, "
             "or maps will not render.",
             leaflet_js,
         )
@@ -232,7 +232,7 @@ def build(
 
         # --- Optionally fetch vendored Leaflet into output ---
         if fetch_leaflet:
-            from echotrail_gen.vendor import fetch_vendor
+            from tracevoyage_gen.vendor import fetch_vendor
 
             fetch_vendor(assets_dir=str(out_path / "assets"))
 
@@ -275,7 +275,7 @@ def build(
 
 def _render_trips_index(env: Environment, trips: list[Trip], out_path: Path) -> None:
     tpl = env.get_template("index.html")
-    html = tpl.render(trips=trips, page_title="EchoTrail")
+    html = tpl.render(trips=trips, page_title="TraceVoyage")
     _write(out_path / "index.html", html)
     log.info("Rendered trips index → index.html")
 

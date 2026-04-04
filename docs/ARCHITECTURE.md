@@ -1,12 +1,12 @@
-# EchoTrail Architecture
+# TraceVoyage Architecture
 
-This document describes the technical internals of EchoTrail.
+This document describes the technical internals of TraceVoyage.
 
 ## High-level flow
 
-1. CLI parses command arguments in echotrail_gen/cli.py.
-2. Builder orchestrates the pipeline in echotrail_gen/builder.py.
-3. Schema loader reads content from disk into typed Pydantic models in echotrail_gen/schema.py.
+1. CLI parses command arguments in tracevoyage_gen/cli.py.
+2. Builder orchestrates the pipeline in tracevoyage_gen/builder.py.
+3. Schema loader reads content from disk into typed Pydantic models in tracevoyage_gen/schema.py.
 4. Templates render HTML via Jinja2.
 5. Assets and media are copied/processed into the output directory.
 
@@ -14,11 +14,11 @@ This document describes the technical internals of EchoTrail.
 
 Main entry point:
 
-- python -m echotrail_gen build
+- python -m tracevoyage_gen build
 
 Main orchestration function:
 
-- build(...) in echotrail_gen/builder.py
+- build(...) in tracevoyage_gen/builder.py
 
 Pipeline steps:
 
@@ -37,7 +37,7 @@ Pipeline steps:
 
 ## CLI and options
 
-Local CLI options are defined in echotrail_gen/cli.py.
+Local CLI options are defined in tracevoyage_gen/cli.py.
 
 Important build flags:
 
@@ -108,7 +108,7 @@ Key fields:
 
 ## Templates
 
-Bundled templates are in echotrail_gen/default_templates:
+Bundled templates are in tracevoyage_gen/default_templates:
 
 - base.html
 - index.html
@@ -119,7 +119,7 @@ Templates extend base.html and use a markdown() helper from the builder.
 
 ## Media processing
 
-Implementation lives in echotrail_gen/images.py.
+Implementation lives in tracevoyage_gen/images.py.
 
 For image files:
 
@@ -133,7 +133,7 @@ Video files:
 
 ## Mapping and geography
 
-- Country to flag mapping in echotrail_gen/schema.py.
+- Country to flag mapping in tracevoyage_gen/schema.py.
 - Route loading supports GeoJSON directly and GPX fallback conversion.
 
 ## GitHub Action

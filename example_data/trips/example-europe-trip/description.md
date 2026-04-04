@@ -8,7 +8,7 @@ odometer_km = '3,240'
 A journey across Europe — from Berlin through Prague, Vienna and Budapest to the Adriatic coast.
 Three weeks, countless encounters and unforgettable landscapes.
 
-> **Note:** This is example content shipped with EchoTrail for demonstration
+> **Note:** This is example content shipped with TraceVoyage for demonstration
 > and testing purposes. Replace it with your own trips!
 
 ## Highlights

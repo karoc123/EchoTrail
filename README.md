@@ -1,6 +1,6 @@
-# EchoTrail
+# TraceVoyage
 
-EchoTrail is a static travel-journal generator built with Python and Jinja2.
+TraceVoyage is a static travel-journal generator built with Python and Jinja2.
 
 Use this README for quick setup and daily usage.
 For technical internals, see docs/ARCHITECTURE.md.
@@ -16,7 +16,7 @@ python -m pip install -e .
 2. Build a site:
 
 ```bash
-python -m echotrail_gen build --data example_data --fetch-vendor
+python -m tracevoyage_gen build --data example_data --fetch-vendor
 ```
 
 3. Open generated output:
@@ -26,7 +26,7 @@ python -m echotrail_gen build --data example_data --fetch-vendor
 ## Build command reference
 
 ```bash
-python -m echotrail_gen build [options]
+python -m tracevoyage_gen build [options]
 ```
 
 | Option | Default | Description |
@@ -41,7 +41,7 @@ python -m echotrail_gen build [options]
 Example for smaller output size:
 
 ```bash
-python -m echotrail_gen build --data data --exclude-videos
+python -m tracevoyage_gen build --data data --exclude-videos
 ```
 
 ## Vendor assets
@@ -49,8 +49,8 @@ python -m echotrail_gen build --data data --exclude-videos
 If you do not use --fetch-vendor during build, fetch vendor files separately:
 
 ```bash
-python -m echotrail_gen fetch-vendor
-python -m echotrail_gen build --data data --assets assets
+python -m tracevoyage_gen fetch-vendor
+python -m tracevoyage_gen build --data data --assets assets
 ```
 
 ## Minimal content structure

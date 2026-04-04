@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace "com.echotrail.app"
+    namespace "com.tracevoyage.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -19,7 +19,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.echotrail.app"
+        applicationId "com.tracevoyage.app"
         minSdk = 21
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
