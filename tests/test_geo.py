@@ -1,4 +1,4 @@
-"""Tests for echotrail_gen.geo – GeoJSON loading and GPX conversion."""
+"""Tests for tracevoyage_gen.geo – GeoJSON loading and GPX conversion."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ from pathlib import Path
 
 import pytest
 
-from echotrail_gen.geo import load_geojson, gpx_to_geojson
-from echotrail_gen.exceptions import GeoProcessingError
+from tracevoyage_gen.geo import load_geojson, gpx_to_geojson
+from tracevoyage_gen.exceptions import GeoProcessingError
 
 
 # ── load_geojson ────────────────────────────────────────────────────────────

@@ -1,10 +1,10 @@
-# EchoTrail Helpers
+# TraceVoyage Helpers
 
-This directory contains helper scripts for importing content into EchoTrail from various sources.
+This directory contains helper scripts for importing content into TraceVoyage from various sources.
 
 ## FindPenguins Scraper
 
-The `findpenguins_scraper.py` script scrapes a FindPenguins trip and converts it to EchoTrail format.
+The `findpenguins_scraper.py` script scrapes a FindPenguins trip and converts it to TraceVoyage format.
 
 ### Installation
 
@@ -84,14 +84,14 @@ The scraper attempts to extract:
 
 **Note:** The scraper uses Playwright (headless browser) to handle FindPenguins' dynamic "Load more" pagination. If Playwright is not installed, it falls back to a single-pass requests-based fetch, which may miss some articles on trips with pagination.
 
-### Integration with EchoTrail
+### Integration with TraceVoyage
 
-The generated structure is already compatible with EchoTrail's expected `data/trips/...` layout.
+The generated structure is already compatible with TraceVoyage's expected `data/trips/...` layout.
 
 You can build directly from the imported directory:
 
 ```bash
-python -m echotrail_gen build --data imported --assets assets
+python -m tracevoyage_gen build --data imported --assets assets
 ```
 
 If you want to merge the imported trip into an existing `data` directory, move or copy the trip folder under `data/trips/`:
@@ -104,7 +104,7 @@ Move-Item imported/trips/winter-is-coming data/trips/
 mv imported/trips/winter-is-coming data/trips/
 
 # Build from your main data directory
-python -m echotrail_gen build --data data --assets assets
+python -m tracevoyage_gen build --data data --assets assets
 ```
 
 ### Limitations
@@ -127,7 +127,7 @@ If the scraper fails or produces incomplete results:
 
 - The scraper is respectful and includes appropriate delays between requests
 - Images are downloaded to preserve the complete trip
-- Entry files include a Markdown heading, which EchoTrail uses as the entry title
+- Entry files include a Markdown heading, which TraceVoyage uses as the entry title
 - The front matter preserves extracted metadata such as `country`, `weather`, `temperature_c`, and `point_name` when available
-- EchoTrail reads `media.json` and renders image descriptions in the gallery (caption + lightbox text)
+- TraceVoyage reads `media.json` and renders image descriptions in the gallery (caption + lightbox text)
 - The source URL is recorded in the trip description for reference

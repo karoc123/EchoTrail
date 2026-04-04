@@ -6,16 +6,16 @@ import '../models/trip.dart';
 import '../models/entry.dart';
 import 'toml_service.dart';
 
-/// Manages all local file I/O for EchoTrail trip data.
+/// Manages all local file I/O for TraceVoyage trip data.
 ///
-/// Data lives in `<documents>/echotrail_data/trips/`.
+/// Data lives in `<documents>/tracevoyage_data/trips/`.
 /// A `.sync_state.json` file tracks which relative paths have unsaved changes.
 class LocalStorageService {
   static const _syncStateFile = '.sync_state.json';
 
   Future<Directory> get _baseDir async {
     final docs = await getApplicationDocumentsDirectory();
-    final dir = Directory(p.join(docs.path, 'echotrail_data'));
+    final dir = Directory(p.join(docs.path, 'tracevoyage_data'));
     if (!await dir.exists()) await dir.create(recursive: true);
     return dir;
   }

@@ -1,5 +1,5 @@
-name: echotrail_app
-description: EchoTrail - Offline-first trip management with GitHub sync
+name: tracevoyage_app
+description: TraceVoyage - Offline-first trip management with GitHub sync
 version: 1.0.0+1
 
 environment:

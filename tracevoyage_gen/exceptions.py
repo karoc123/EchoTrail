@@ -1,4 +1,4 @@
-"""Custom exceptions for EchoTrail operations.
+"""Custom exceptions for TraceVoyage operations.
 
 Provides typed, domain-specific exceptions that carry context for better
 error handling and debugging compared to generic Exception types.
@@ -14,13 +14,13 @@ def _display_path(path: Path) -> str:
     return path.as_posix()
 
 
-class EchoTrailError(Exception):
-    """Base exception for all EchoTrail-specific errors."""
+class TraceVoyageError(Exception):
+    """Base exception for all TraceVoyage-specific errors."""
 
     pass
 
 
-class ImageProcessingError(EchoTrailError):
+class ImageProcessingError(TraceVoyageError):
     """Raised when image resizing or thumbnail generation fails.
 
     Attributes:
@@ -34,7 +34,7 @@ class ImageProcessingError(EchoTrailError):
         super().__init__(f"Failed to process image {_display_path(path)}: {reason}")
 
 
-class GeoProcessingError(EchoTrailError):
+class GeoProcessingError(TraceVoyageError):
     """Raised when GPX or GeoJSON processing fails.
 
     Attributes:
@@ -48,7 +48,7 @@ class GeoProcessingError(EchoTrailError):
         super().__init__(f"Failed to process geo file {_display_path(path)}: {reason}")
 
 
-class TemplateNotFoundError(EchoTrailError):
+class TemplateNotFoundError(TraceVoyageError):
     """Raised when required template files are missing.
 
     Attributes:
@@ -60,7 +60,7 @@ class TemplateNotFoundError(EchoTrailError):
         super().__init__(f"Templates directory not found: {_display_path(template_dir)}")
 
 
-class VendorFetchError(EchoTrailError):
+class VendorFetchError(TraceVoyageError):
     """Raised when downloading vendor assets (Leaflet, GLightbox) fails.
 
     Attributes:

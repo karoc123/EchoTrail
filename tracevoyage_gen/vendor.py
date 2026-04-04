@@ -6,7 +6,7 @@ import logging
 import urllib.request
 from pathlib import Path
 
-from echotrail_gen.exceptions import VendorFetchError
+from tracevoyage_gen.exceptions import VendorFetchError
 
 log = logging.getLogger(__name__)
 

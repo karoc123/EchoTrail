@@ -1,4 +1,4 @@
-"""Tests for echotrail_gen.images – image resizing and thumbnail generation."""
+"""Tests for tracevoyage_gen.images – image resizing and thumbnail generation."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from PIL import Image
 
-from echotrail_gen.images import (
+from tracevoyage_gen.images import (
     resize_image,
     thumb_name,
     process_entry_media,

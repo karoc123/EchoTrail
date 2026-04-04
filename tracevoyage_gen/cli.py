@@ -1,16 +1,16 @@
-"""CLI entry-point: ``python -m echotrail_gen [build|fetch-vendor]``."""
+"""CLI entry-point: ``python -m tracevoyage_gen [build|fetch-vendor]``."""
 
 import argparse
 import sys
 
-from echotrail_gen.builder import build
-from echotrail_gen.vendor import fetch_vendor
+from tracevoyage_gen.builder import build
+from tracevoyage_gen.vendor import fetch_vendor
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(
-        prog="echotrail_gen",
-        description="EchoTrail static site generator.",
+        prog="tracevoyage_gen",
+        description="TraceVoyage static site generator.",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 

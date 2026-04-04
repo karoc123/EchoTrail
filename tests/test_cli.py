@@ -1,4 +1,4 @@
-"""Tests for echotrail_gen.cli – argument parsing and command dispatch."""
+"""Tests for tracevoyage_gen.cli – argument parsing and command dispatch."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from echotrail_gen.cli import main
+from tracevoyage_gen.cli import main
 
 
 class TestCli:
@@ -19,7 +19,7 @@ class TestCli:
         def fake_build(**kwargs):
             captured.update(kwargs)
 
-        monkeypatch.setattr("echotrail_gen.cli.build", fake_build)
+        monkeypatch.setattr("tracevoyage_gen.cli.build", fake_build)
         main(["build"])
 
         assert captured["data_dir"] == "data"
@@ -35,7 +35,7 @@ class TestCli:
         def fake_build(**kwargs):
             captured.update(kwargs)
 
-        monkeypatch.setattr("echotrail_gen.cli.build", fake_build)
+        monkeypatch.setattr("tracevoyage_gen.cli.build", fake_build)
         main(["build", "--data", "my_data", "--output", "out", "--templates", "tpl", "--assets", "res"])
 
         assert captured["data_dir"] == "my_data"
@@ -49,7 +49,7 @@ class TestCli:
         def fake_build(**kwargs):
             captured.update(kwargs)
 
-        monkeypatch.setattr("echotrail_gen.cli.build", fake_build)
+        monkeypatch.setattr("tracevoyage_gen.cli.build", fake_build)
         main(["build", "--fetch-vendor"])
 
         assert captured["fetch_leaflet"] is True
@@ -60,7 +60,7 @@ class TestCli:
         def fake_build(**kwargs):
             captured.update(kwargs)
 
-        monkeypatch.setattr("echotrail_gen.cli.build", fake_build)
+        monkeypatch.setattr("tracevoyage_gen.cli.build", fake_build)
         main(["build", "--exclude-videos"])
 
         assert captured["skip_videos"] is True
@@ -71,7 +71,7 @@ class TestCli:
         def fake_fetch(**kwargs):
             captured.update(kwargs)
 
-        monkeypatch.setattr("echotrail_gen.cli.fetch_vendor", fake_fetch)
+        monkeypatch.setattr("tracevoyage_gen.cli.fetch_vendor", fake_fetch)
         main(["fetch-vendor"])
 
         assert captured["assets_dir"] == "assets"
@@ -86,7 +86,7 @@ class TestCli:
 
 
 class TestCLIEntryPoint:
-    """Verify the package can be invoked as ``python -m echotrail_gen``."""
+    """Verify the package can be invoked as ``python -m tracevoyage_gen``."""
 
     def test_module_invocation(self, example_data_dir: Path, tmp_path: Path) -> None:
         out = tmp_path / "dist"
@@ -94,7 +94,7 @@ class TestCLIEntryPoint:
             [
                 sys.executable,
                 "-m",
-                "echotrail_gen",
+                "tracevoyage_gen",
                 "build",
                 "--data",
                 str(example_data_dir),

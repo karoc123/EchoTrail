@@ -36,9 +36,9 @@ from typing import Any, Literal
 import tomllib
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from echotrail_gen.images import thumb_name as _thumb_name
+from tracevoyage_gen.images import thumb_name as _thumb_name
 
-from echotrail_gen.geo import gpx_to_geojson, load_geojson
+from tracevoyage_gen.geo import gpx_to_geojson, load_geojson
 
 log = logging.getLogger(__name__)
 

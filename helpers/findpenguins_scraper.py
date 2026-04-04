@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""FindPenguins trip scraper for EchoTrail.
+"""FindPenguins trip scraper for TraceVoyage.
 
-Scrapes a FindPenguins trip URL and creates an EchoTrail-compatible
+Scrapes a FindPenguins trip URL and creates an TraceVoyage-compatible
 folder structure with entries for each post from the trip.
 
 Usage:
@@ -283,7 +283,7 @@ def scrape_findpenguins_trip(
     output_base: Path = Path("imported"),
     use_browser: bool = True,
 ) -> None:
-    """Scrape a FindPenguins trip and create EchoTrail folder structure.
+    """Scrape a FindPenguins trip and create TraceVoyage folder structure.
 
     Args:
         url: FindPenguins trip URL
@@ -497,7 +497,7 @@ source_url = '{url}'
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Scrape a FindPenguins trip and convert to EchoTrail format.",
+        description="Scrape a FindPenguins trip and convert to TraceVoyage format.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

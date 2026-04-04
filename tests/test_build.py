@@ -1,4 +1,4 @@
-"""Tests for echotrail_gen.builder – Markdown rendering, bundled paths, and full build integration."""
+"""Tests for tracevoyage_gen.builder – Markdown rendering, bundled paths, and full build integration."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from echotrail_gen.builder import build, _markdown_to_html, _bundled_templates, _bundled_assets, BuildResult
+from tracevoyage_gen.builder import build, _markdown_to_html, _bundled_templates, _bundled_assets, BuildResult
 
 
 # ── Bundled paths ───────────────────────────────────────────────────────────

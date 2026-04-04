@@ -64,7 +64,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       size: 80, color: Color(0xFF2196F3)),
                   const SizedBox(height: 16),
                   Text(
-                    'EchoTrail',
+                    'TraceVoyage',
                     style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                           color: const Color(0xFF2196F3),

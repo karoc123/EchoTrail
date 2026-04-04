@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "echotrail_gen"
+name = "tracevoyage_gen"
 version = "0.1.0"
-description = "Static site generator for EchoTrail travel journals."
+description = "Static site generator for TraceVoyage travel journals."
 requires-python = ">=3.12"
 dependencies = [
     "jinja2>=3.1",
@@ -19,14 +19,14 @@ dev = ["pytest>=7"]
 scraper = ["requests>=2.31", "beautifulsoup4>=4.12", "playwright>=1.40"]
 
 [project.scripts]
-echotrail-gen = "echotrail_gen.cli:main"
+tracevoyage-gen = "tracevoyage_gen.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["echotrail_gen*"]
+include = ["tracevoyage_gen*"]
 
 [tool.setuptools.package-data]
-echotrail_gen = [
+tracevoyage_gen = [
     "default_templates/*.html",
     "default_assets/**/*",
     "default_assets/**/.gitkeep",

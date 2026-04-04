@@ -1,6 +1,6 @@
-# EchoTrail App
+# TraceVoyage App
 
-A Flutter application for offline-first editing and GitHub synchronisation of EchoTrail trip data.
+A Flutter application for offline-first editing and GitHub synchronisation of TraceVoyage trip data.
 
 ## Features
 
@@ -17,7 +17,7 @@ A Flutter application for offline-first editing and GitHub synchronisation of Ec
 - [Flutter](https://flutter.dev/docs/get-started/install) ≥ 3.19.0
 - A GitHub account with a [Personal Access Token (PAT)](https://github.com/settings/tokens)
   - Required scopes: `repo` (full control of private repositories) or `public_repo` for public repos
-- A GitHub repository containing your EchoTrail trip data
+- A GitHub repository containing your TraceVoyage trip data
 
 ### Run from source
 
@@ -30,7 +30,7 @@ flutter run
 ### Download pre-built APK
 
 1. Go to the **Actions** tab in this repository
-2. Click **"Build EchoTrail App (APK)"**
+2. Click **"Build TraceVoyage App (APK)"**
 3. Click **"Run workflow"** → choose build type → **"Run workflow"**
 4. After the build completes (~5 minutes), download the APK from the **Artifacts** section
 
@@ -67,7 +67,7 @@ If a file changed on GitHub in the meantime, the local version wins
 
 ## Data Format
 
-Trip data uses the EchoTrail format:
+Trip data uses the TraceVoyage format:
 
 ```
 trips/

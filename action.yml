@@ -1,5 +1,5 @@
-name: "EchoTrail Build"
-description: "Build an EchoTrail static travel journal from a content directory."
+name: "TraceVoyage Build"
+description: "Build an TraceVoyage static travel journal from a content directory."
 branding:
   icon: "map"
   color: "orange"
@@ -47,9 +47,9 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
 
-    - name: Install EchoTrail
+    - name: Install TraceVoyage
       shell: bash
-      run: pip install "echotrail_gen[markdown] @ git+https://github.com/${{ github.action_repository || github.repository }}.git@${{ github.action_ref || github.sha }}"
+      run: pip install "tracevoyage_gen[markdown] @ git+https://github.com/${{ github.action_repository || github.repository }}.git@${{ github.action_ref || github.sha }}"
 
     - name: Build site
       shell: bash
@@ -67,4 +67,4 @@ runs:
         if [ "${{ inputs.exclude-videos }}" = "true" ]; then
           ARGS="$ARGS --exclude-videos"
         fi
-        python -m echotrail_gen build $ARGS
+        python -m tracevoyage_gen build $ARGS

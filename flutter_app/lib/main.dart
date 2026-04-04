@@ -4,5 +4,5 @@ import 'app.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const ProviderScope(child: EchoTrailApp()));
+  runApp(const ProviderScope(child: TraceVoyageApp()));
 }

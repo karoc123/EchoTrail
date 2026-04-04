@@ -1,4 +1,4 @@
-"""Tests for echotrail_gen.schema – data loading layer."""
+"""Tests for tracevoyage_gen.schema – data loading layer."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from echotrail_gen.schema import (
+from tracevoyage_gen.schema import (
     _parse_frontmatter,
     _media_files,
     country_to_flag,

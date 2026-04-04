@@ -1,6 +1,6 @@
 # Example Data
 
-This directory contains **example content** for EchoTrail. It is intended for
+This directory contains **example content** for TraceVoyage. It is intended for
 demonstration and testing purposes only.
 
 Replace the trips in this directory with your own content, or point `--data` at

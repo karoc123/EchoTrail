@@ -1,4 +1,4 @@
-"""Tests for custom exceptions in echotrail_gen.exceptions."""
+"""Tests for custom exceptions in tracevoyage_gen.exceptions."""
 
 from __future__ import annotations
 
@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from echotrail_gen.exceptions import (
-    EchoTrailError,
+from tracevoyage_gen.exceptions import (
+    TraceVoyageError,
     ImageProcessingError,
     GeoProcessingError,
     TemplateNotFoundError,
@@ -16,24 +16,24 @@ from echotrail_gen.exceptions import (
 
 
 class TestExceptionHierarchy:
-    """Test that all custom exceptions inherit from EchoTrailError."""
+    """Test that all custom exceptions inherit from TraceVoyageError."""
 
     def test_image_processing_error_inherits_from_base(self):
         err = ImageProcessingError(Path("/tmp/test.jpg"), "test reason")
-        assert isinstance(err, EchoTrailError)
+        assert isinstance(err, TraceVoyageError)
         assert isinstance(err, Exception)
 
     def test_geo_processing_error_inherits_from_base(self):
         err = GeoProcessingError(Path("/tmp/test.gpx"), "test reason")
-        assert isinstance(err, EchoTrailError)
+        assert isinstance(err, TraceVoyageError)
 
     def test_template_not_found_error_inherits_from_base(self):
         err = TemplateNotFoundError(Path("/tmp/templates"))
-        assert isinstance(err, EchoTrailError)
+        assert isinstance(err, TraceVoyageError)
 
     def test_vendor_fetch_error_inherits_from_base(self):
         err = VendorFetchError("https://example.com/lib.js", "test reason")
-        assert isinstance(err, EchoTrailError)
+        assert isinstance(err, TraceVoyageError)
 
 
 class TestImageProcessingError:

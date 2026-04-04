@@ -8,14 +8,14 @@ import 'screens/trips_list_screen.dart';
 import 'screens/trip_detail_screen.dart';
 import 'screens/entry_editor_screen.dart';
 
-class EchoTrailApp extends ConsumerWidget {
-  const EchoTrailApp({super.key});
+class TraceVoyageApp extends ConsumerWidget {
+  const TraceVoyageApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(_routerProvider);
     return MaterialApp.router(
-      title: 'EchoTrail',
+      title: 'TraceVoyage',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2196F3)),
         useMaterial3: true,
