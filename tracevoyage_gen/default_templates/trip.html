@@ -4,9 +4,15 @@
 
   <h1>{{ trip.title }}</h1>
 
+  {% set hero_image = trip.title_image or trip.cover %} {% if hero_image %}
+  <figure class="trip-title-banner">
+    <img src="{{ root_url }}trips/{{ trip.id }}/{{ hero_image }}" alt="{{ trip.title }}" loading="lazy" />
+  </figure>
+  {% endif %}
+
   <ul class="trip-meta-list">
     {% if trip.odometer_km %}
-    <li>🛣 <strong>{{ trip.odometer_km }} km</strong></li>
+    <li>👣 <strong>{{ trip.odometer_km }} km</strong></li>
     {% endif %}
     <li>📍 <strong>{{ trip.entries | length }}</strong> entries</li>
     {% if trip.duration_days %}
@@ -37,10 +43,35 @@
       {% for entry in trip.entries %}
       <li class="entry-item">
         <a href="{{ root_url }}trips/{{ trip.id }}/entries/{{ entry.id }}/index.html">
-          <span class="entry-date">{{ entry.date }}</span>
-          {% if entry.title %}<span class="entry-title">{{ entry.title }}</span>{% endif %} {% if entry.country %}<span class="entry-country"
-            >{{ entry.country }}{% if entry.country_flag %} <span class="flag-emoji" aria-label="{{ entry.country }} flag">{{ entry.country_flag }}</span>{% endif %}</span
-          >{% endif %}
+          <div class="entry-content">
+            <div class="entry-left">
+              <span class="entry-mainline">
+                {% if entry.title %}<span class="entry-title">{{ entry.title }}</span>{% else %}<span class="entry-title">{{ entry.id }}</span>{% endif %}
+              </span>
+              <span class="entry-subline">
+                {% if entry.date %}<span class="entry-date entry-date--subtle">{{ entry.date }}</span>{% endif %}
+              <span class="entry-subline">
+                {% if entry.country %}<span class="entry-country">{{ entry.country }}{% if entry.country_flag %} <span class="flag-emoji" aria-label="{{ entry.country }} flag">{{ entry.country_flag }}</span>{% endif %}</span>{% endif %}
+              </span>
+            </div>
+            <div class="entry-right">
+              {% set teaser = namespace(first_image=None) %}
+              {% for item in entry.media %}
+                {% if item.type == "image" and teaser.first_image is none %}
+                  {% set teaser.first_image = item %}
+                {% endif %}
+              {% endfor %}
+              {% if teaser.first_image %}
+                <span class="entry-teaser">
+                  <img
+                    src="{{ root_url }}trips/{{ trip.id }}/entries/{{ entry.id }}/media/{{ teaser.first_image.thumb_name }}"
+                    alt="{{ teaser.first_image.description or entry.title or entry.id }}"
+                    loading="lazy"
+                  />
+                </span>
+              {% endif %}
+            </div>
+          </div>
         </a>
       </li>
       {% endfor %}

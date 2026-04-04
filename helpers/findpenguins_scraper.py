@@ -79,6 +79,15 @@ def _img_url_to_large(url: str) -> str:
     return _IMG_SIZE_RE.sub('_l.', url)
 
 
+def _suffix_from_url(url: str) -> str:
+    """Best-effort suffix extraction from URL path."""
+    parsed = urlparse(url)
+    suffix = Path(parsed.path).suffix.lower()
+    if suffix:
+        return suffix
+    return ".jpg"
+
+
 def _parse_desc_span(desc_span: Tag) -> dict[str, Any]:
     """Parse the .desc span that contains date, country, and weather.
 
@@ -198,8 +207,10 @@ def _extract_photos(article: Tag, base_url: str) -> list[dict[str, str]]:
 def _fetch_page_with_playwright(url: str) -> str | None:
     """Fetch a trip page using Playwright to handle dynamic 'Load more' buttons.
 
-    Returns the full page HTML after all dynamically loaded articles are fetched,
-    or None if Playwright is not available.
+    Returns the full page HTML (including <head>) after all dynamically loaded articles
+    are fetched, or None if Playwright is not available. Note: Our Playwright approach
+    fetches articles dynamically but meta tags are static, so we still rely on requests
+    for the initial page load to get og:image etc.
     """
     if not HAS_PLAYWRIGHT:
         return None
@@ -245,7 +256,8 @@ def _fetch_page_with_playwright(url: str) -> str | None:
                     log.debug(f"  No more buttons to click or error: {e}")
                     break
 
-            html = page.inner_html("body")
+            # Get full HTML including head and body
+            html = page.content()
             browser.close()
             return html
 
@@ -339,17 +351,39 @@ def scrape_findpenguins_trip(
         if og_desc:
             trip_description = og_desc.get('content', '')
 
-        description_content = f"""\
-+++
-title = '{trip_title}'
-source = 'FindPenguins'
-source_url = '{url}'
-+++
+        title_image_name: str | None = None
+        og_image = soup.find('meta', attrs={'property': 'og:image'})
+        if og_image and og_image.get('content'):
+            image_url = urljoin(url, og_image.get('content', ''))
+            suffix = _suffix_from_url(image_url)
+            title_image_name = f"title{suffix}"
+            title_image_dest = trip_dir / title_image_name
+            log.debug(f"Attempting to download title image from og:image: {image_url}")
+            if not download_image(image_url, title_image_dest, session):
+                log.warning(f"Failed to download title image from og:image")
+                title_image_name = None
+            else:
+                log.info(f"Successfully downloaded title image: {title_image_name}")
 
-# {trip_title}
-
-{trip_description or 'Imported from FindPenguins.'}
-"""
+        fm_lines = [
+            "+++",
+            f"title = '{trip_title}'",
+        ]
+        if title_image_name:
+            fm_lines.append(f"title_image = '{title_image_name}'")
+        fm_lines.extend(
+            [
+                "source = 'FindPenguins'",
+                f"source_url = '{url}'",
+                "+++",
+                "",
+                f"# {trip_title}",
+                "",
+                trip_description or "Imported from FindPenguins.",
+                "",
+            ]
+        )
+        description_content = "\n".join(fm_lines)
         (trip_dir / "description.md").write_text(description_content, encoding='utf-8')
         log.info(f"Created trip description: {trip_dir / 'description.md'}")
 
@@ -440,7 +474,7 @@ source_url = '{url}'
                 if lat is not None and lon is not None:
                     lines.append(f"lat = {lat}")
                     lines.append(f"lon = {lon}")
-                    lines.append(f"point_name = '{title}'")
+                lines.append(f"title = '{title}'")
                 lines.append("+++")
                 lines.append("")
                 lines.append(f"# {title}")

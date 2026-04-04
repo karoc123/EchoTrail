@@ -16,7 +16,9 @@ class TripDetailScreen extends ConsumerStatefulWidget {
 class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   final _titleCtrl = TextEditingController();
   final _odometerCtrl = TextEditingController();
+  final _titleImageCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
+  bool _draft = false;
   bool _initialized = false;
   Trip? _trip;
 
@@ -24,6 +26,7 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
   void dispose() {
     _titleCtrl.dispose();
     _odometerCtrl.dispose();
+    _titleImageCtrl.dispose();
     _descCtrl.dispose();
     super.dispose();
   }
@@ -32,7 +35,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
     if (_initialized) return;
     _titleCtrl.text = trip.title;
     _odometerCtrl.text = trip.odometerKm;
+    _titleImageCtrl.text = trip.titleImage;
     _descCtrl.text = trip.descriptionMd;
+    _draft = trip.draft;
     _initialized = true;
   }
 
@@ -42,7 +47,9 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
       id: _trip!.id,
       title: _titleCtrl.text.trim(),
       odometerKm: _odometerCtrl.text.trim(),
+      titleImage: _titleImageCtrl.text.trim(),
       descriptionMd: _descCtrl.text,
+      draft: _draft,
       entries: _trip!.entries,
     );
     await ref.read(tripsProvider.notifier).updateTrip(updated);
@@ -132,6 +139,22 @@ class _TripDetailScreenState extends ConsumerState<TripDetailScreen> {
                     labelText: 'Odometer (km)',
                     border: OutlineInputBorder(),
                   ),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _titleImageCtrl,
+                  decoration: const InputDecoration(
+                    labelText: 'Title image filename (title.*)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Draft'),
+                  subtitle: const Text('Draft trips are skipped by the generator'),
+                  value: _draft,
+                  onChanged: (value) => setState(() => _draft = value),
                 ),
                 const SizedBox(height: 16),
                 Text('Description',
@@ -225,9 +248,9 @@ class _EntryTile extends StatelessWidget {
         child: ListTile(
           leading: const Icon(Icons.article_outlined),
           title: Text(
-              entry.pointName.isEmpty ? entry.id : entry.pointName),
+              entry.title.isEmpty ? entry.id : entry.title),
           subtitle: Text(
-              '${entry.date}${entry.country.isNotEmpty ? ' · ${entry.country}' : ''}'),
+              '${entry.date}${entry.country.isNotEmpty ? ' · ${entry.country}' : ''}${entry.draft ? ' · draft' : ''}'),
           trailing: const Icon(Icons.chevron_right),
           onTap: () =>
               context.push('/trips/$tripId/entries/${entry.id}'),

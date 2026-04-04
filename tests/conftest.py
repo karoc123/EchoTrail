@@ -79,6 +79,7 @@ SAMPLE_TRIP_DESC = textwrap.dedent("""\
     +++
     title = 'Test-Tour 2026'
     odometer_km = '1.200'
+    title_image = 'title.png'
     vehicle = 'Honda CB 500X'
     +++
 
@@ -90,12 +91,12 @@ SAMPLE_TRIP_DESC = textwrap.dedent("""\
 SAMPLE_ENTRY_BERLIN = textwrap.dedent("""\
     +++
     date = 2026-03-31
+    title = 'Departure from Berlin'
     country = 'Germany'
     weather = 'Cloudy'
     temperature_c = 9
     lat = 52.52
     lon = 13.405
-    point_name = 'Berlin – Start'
     +++
 
     # Departure from Berlin
@@ -147,6 +148,7 @@ def data_dir(tmp_path: Path) -> Path:
 
     # Trip description + route
     (trip / "description.md").write_text(SAMPLE_TRIP_DESC, encoding="utf-8")
+    _create_test_jpeg(trip / "title.png", 2400, 900)
     (trip / "route.geojson").write_text(
         json.dumps(SAMPLE_ROUTE_GEOJSON), encoding="utf-8"
     )

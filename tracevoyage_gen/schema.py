@@ -25,6 +25,7 @@ Directory layout expected::
 
 from __future__ import annotations
 
+import math
 import json
 import logging
 import re
@@ -76,6 +77,7 @@ class Entry(BaseModel):
     point_geojson: dict[str, Any] | None = None
     point_geojson_json: str = "null"
     media: list[MediaItem] = []
+    draft: bool = False
     extra: dict[str, str] = {}
     meta: dict[str, Any] = {}
 
@@ -90,7 +92,9 @@ class Trip(BaseModel):
     title: str
     description_md: str
     odometer_km: str = ""
+    title_image: str | None = None
     cover: str | None = None
+    draft: bool = False
     route_geojson: dict[str, Any] | None = None
     route_geojson_json: str = "null"
     entries: list[Entry]
@@ -367,6 +371,23 @@ def _read_text(path: Path) -> str:
     return ""
 
 
+def _coerce_bool(value: Any, default: bool = False) -> bool:
+    """Convert TOML/string-like values into a boolean."""
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if normalized in {"1", "true", "yes", "y", "on"}:
+            return True
+        if normalized in {"0", "false", "no", "n", "off"}:
+            return False
+    return default
+
+
 def _parse_frontmatter(text: str) -> tuple[dict[str, Any], str]:
     """Parse TOML front matter delimited by ``+++`` from *text*.
 
@@ -530,11 +551,98 @@ def _trip_duration(entries: list[Entry]) -> tuple[str, int]:
     return start_date_str, duration_days
 
 
+def _iter_linestring_coords(route_geojson: dict[str, Any]) -> list[list[float]]:
+    """Collect all LineString coordinates from a GeoJSON object."""
+    if not isinstance(route_geojson, dict):
+        return []
+
+    coords: list[list[float]] = []
+
+    def _append_lines(geometry: dict[str, Any]) -> None:
+        gtype = geometry.get("type")
+        gcoords = geometry.get("coordinates")
+        if gtype == "LineString" and isinstance(gcoords, list):
+            coords.extend([pt for pt in gcoords if isinstance(pt, list) and len(pt) >= 2])
+        elif gtype == "MultiLineString" and isinstance(gcoords, list):
+            for segment in gcoords:
+                if isinstance(segment, list):
+                    coords.extend([pt for pt in segment if isinstance(pt, list) and len(pt) >= 2])
+
+    gtype = route_geojson.get("type")
+    if gtype == "FeatureCollection":
+        for feature in route_geojson.get("features", []):
+            if isinstance(feature, dict) and isinstance(feature.get("geometry"), dict):
+                _append_lines(feature["geometry"])
+    elif gtype == "Feature" and isinstance(route_geojson.get("geometry"), dict):
+        _append_lines(route_geojson["geometry"])
+    elif gtype in {"LineString", "MultiLineString"}:
+        _append_lines(route_geojson)
+
+    return coords
+
+
+def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Great-circle distance between two WGS84 points in kilometers."""
+    earth_radius_km = 6371.0088
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+    a = (
+        math.sin(dphi / 2) ** 2
+        + math.cos(phi1) * math.cos(phi2) * math.sin(dlambda / 2) ** 2
+    )
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return earth_radius_km * c
+
+
+def _odometer_fallback_km(route_geojson: dict[str, Any] | None) -> str:
+    """Compute whole-km odometer from route geometry (no separators)."""
+    if not route_geojson:
+        return ""
+
+    coords = _iter_linestring_coords(route_geojson)
+    if len(coords) < 2:
+        return ""
+
+    total_km = 0.0
+    for prev, cur in zip(coords, coords[1:]):
+        prev_lon, prev_lat = float(prev[0]), float(prev[1])
+        cur_lon, cur_lat = float(cur[0]), float(cur[1])
+        total_km += _haversine_km(prev_lat, prev_lon, cur_lat, cur_lon)
+
+    return str(int(round(total_km)))
+
+
+def _detect_title_image(trip_dir: Path) -> str | None:
+    """Return title image filename if a title.* image exists in trip root."""
+    candidates = sorted(
+        [
+            p
+            for p in trip_dir.iterdir()
+            if p.is_file() and p.stem.lower() == "title" and p.suffix.lower() in _IMAGE_EXTS
+        ]
+    )
+    if not candidates:
+        return None
+    return candidates[0].name
+
+
 # ---------------------------------------------------------------------------
 # Entry loader
 # ---------------------------------------------------------------------------
 
-_ENTRY_KNOWN_KEYS = {"date", "country", "weather", "temperature_c", "lat", "lon", "point_name"}
+_ENTRY_KNOWN_KEYS = {
+    "date",
+    "title",
+    "country",
+    "weather",
+    "temperature_c",
+    "lat",
+    "lon",
+    "point_name",
+    "draft",
+}
 
 _HEADING_RE = re.compile(r"^#\s+(.+)$", re.MULTILINE)
 
@@ -555,14 +663,17 @@ def load_entry(entry_dir: Path, trip_id: str, skip_videos: bool = False) -> Entr
     weather = str(meta.get("weather", ""))
     temperature_c = str(meta.get("temperature_c", "")) if "temperature_c" in meta else ""
 
-    # Entry title: prefer first # heading from body, then point_name
+    # Entry title migration strategy: title -> heading -> legacy point_name
     heading_match = _HEADING_RE.search(text_md)
-    title = heading_match.group(1).strip() if heading_match else str(meta.get("point_name", ""))
+    title_val = str(meta.get("title", "")).strip()
+    heading_title = heading_match.group(1).strip() if heading_match else ""
+    legacy_point_name = str(meta.get("point_name", "")).strip()
+    title = title_val or heading_title or legacy_point_name
 
     # Point geometry from front matter lat/lon
     lat = meta.get("lat")
     lon = meta.get("lon")
-    point_name = str(meta.get("point_name", ""))
+    point_name = title or str(meta.get("point_name", ""))
 
     point_geojson: dict[str, Any] | None = None
     if lat is not None and lon is not None:
@@ -619,6 +730,8 @@ def load_entry(entry_dir: Path, trip_id: str, skip_videos: bool = False) -> Entr
     if skip_videos:
         media = [m for m in media if m.type != "video"]
 
+    draft = _coerce_bool(meta.get("draft"), default=False)
+
     return Entry(
         id=entry_id,
         trip_id=trip_id,
@@ -633,6 +746,7 @@ def load_entry(entry_dir: Path, trip_id: str, skip_videos: bool = False) -> Entr
         point_geojson=point_geojson,
         point_geojson_json=json.dumps(point_geojson) if point_geojson else "null",
         media=media,
+        draft=draft,
         extra=extra,
         meta=meta_json,
     )
@@ -642,7 +756,7 @@ def load_entry(entry_dir: Path, trip_id: str, skip_videos: bool = False) -> Entr
 # Trip loader
 # ---------------------------------------------------------------------------
 
-_TRIP_KNOWN_KEYS = {"title", "odometer_km"}
+_TRIP_KNOWN_KEYS = {"title", "odometer_km", "title_image", "draft"}
 
 
 def load_trip(trip_dir: Path, skip_videos: bool = False) -> Trip:
@@ -655,6 +769,12 @@ def load_trip(trip_dir: Path, skip_videos: bool = False) -> Trip:
 
     title = str(meta.get("title", "")) or trip_id
     odometer_km = str(meta.get("odometer_km", "")) if "odometer_km" in meta else ""
+    title_image = str(meta.get("title_image", "")).strip() if "title_image" in meta else ""
+    draft = _coerce_bool(meta.get("draft"), default=False)
+
+    if title_image and not (trip_dir / title_image).exists():
+        log.warning("Configured title_image not found in %s: %s", trip_dir, title_image)
+        title_image = ""
 
     # Cover image (optional)
     cover: str | None = None
@@ -662,6 +782,11 @@ def load_trip(trip_dir: Path, skip_videos: bool = False) -> Trip:
         if (trip_dir / cname).exists():
             cover = cname
             break
+
+    if not title_image:
+        detected_title = _detect_title_image(trip_dir)
+        if detected_title:
+            title_image = detected_title
 
     # Route geometry — prefer GeoJSON, fall back to GPX conversion
     route_geojson: dict[str, Any] | None = None
@@ -697,10 +822,16 @@ def load_trip(trip_dir: Path, skip_videos: bool = False) -> Trip:
     if entries_dir.is_dir():
         for entry_dir in sorted(entries_dir.iterdir()):
             if entry_dir.is_dir():
-                entries.append(load_entry(entry_dir, trip_id, skip_videos=skip_videos))
+                entry = load_entry(entry_dir, trip_id, skip_videos=skip_videos)
+                if entry.draft:
+                    log.info("Skipping draft entry: %s/%s", trip_id, entry.id)
+                    continue
+                entries.append(entry)
 
     visited_countries = _visited_countries(entries)
     start_date, duration_days = _trip_duration(entries)
+    if not odometer_km:
+        odometer_km = _odometer_fallback_km(route_geojson)
 
     return Trip(
         id=trip_id,
@@ -708,7 +839,9 @@ def load_trip(trip_dir: Path, skip_videos: bool = False) -> Trip:
         title=title,
         description_md=description_md,
         odometer_km=odometer_km,
+        title_image=title_image or None,
         cover=cover,
+        draft=draft,
         route_geojson=route_geojson,
         route_geojson_json=json.dumps(route_geojson) if route_geojson else "null",
         entries=entries,
@@ -742,7 +875,11 @@ def load_all_trips(data_dir: Path, skip_videos: bool = False) -> list[Trip]:
     for trip_dir in sorted(trips_root.iterdir()):
         if trip_dir.is_dir():
             log.info("Loading trip: %s", trip_dir.name)
-            trips.append(load_trip(trip_dir, skip_videos=skip_videos))
+            trip = load_trip(trip_dir, skip_videos=skip_videos)
+            if trip.draft:
+                log.info("Skipping draft trip: %s", trip.id)
+                continue
+            trips.append(trip)
     
     # Sort by start_date descending (newest first)
     trips.sort(key=lambda t: t.start_date, reverse=True)

@@ -207,6 +207,7 @@ class _TripCard extends StatelessWidget {
             if (trip.startDate.isNotEmpty) Text('Start: ${trip.startDate}'),
             if (trip.countries.isNotEmpty)
               Text('Countries: ${trip.countries.join(", ")}'),
+            if (trip.draft) const Text('Draft', style: TextStyle(color: Colors.orange)),
             Text('${trip.entries.length} entries'),
           ],
         ),

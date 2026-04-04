@@ -32,6 +32,7 @@ This will create a folder structure at:
 ```
 imported/trips/winter-is-coming/
 ├── description.md          # Trip metadata, source info, and description
+├── title.*                 # Optional trip title image from source (if present)
 ├── import_summary.json     # Summary of the import process
 └── entries/
   ├── 2025-11-10-entry-title/
@@ -70,6 +71,7 @@ The scraper attempts to extract:
 - **Trip level:**
   - Title
   - Description
+  - Title image (`title.*`) when available on the source page
   - Source metadata (`source`, `source_url`)
 
 - **Entry level:**
@@ -128,6 +130,6 @@ If the scraper fails or produces incomplete results:
 - The scraper is respectful and includes appropriate delays between requests
 - Images are downloaded to preserve the complete trip
 - Entry files include a Markdown heading, which TraceVoyage uses as the entry title
-- The front matter preserves extracted metadata such as `country`, `weather`, `temperature_c`, and `point_name` when available
+- The front matter preserves extracted metadata such as `title`, `country`, `weather`, and `temperature_c` when available
 - TraceVoyage reads `media.json` and renders image descriptions in the gallery (caption + lightbox text)
 - The source URL is recorded in the trip description for reference

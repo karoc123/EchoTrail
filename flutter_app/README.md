@@ -8,7 +8,7 @@ A Flutter application for offline-first editing and GitHub synchronisation of Tr
 - **GitHub sync**: Push changes to GitHub with a single tap
 - **Full trip management**: Create, edit and delete trips and journal entries
 - **Markdown editor**: Rich journal entries with live preview
-- **All entry fields**: Date, country, weather, temperature, GPS coordinates and point name
+- **All entry fields**: Title, date, country, weather, temperature, GPS coordinates and draft
 
 ## Getting Started
 
@@ -54,7 +54,7 @@ trip data from GitHub to your device.
 ### 4. Edit offline
 
 - Tap a trip card to open it
-- Edit the title, odometer and description, then tap **Save**
+- Edit the title, odometer, title image filename, draft flag and description, then tap **Save**
 - Tap **+** to add a new journal entry
 - Fill in all metadata fields and write in Markdown; toggle **Preview** for rendered output
 - Changes are saved immediately to local storage
@@ -80,10 +80,13 @@ trips/
 ```
 
 **description.md example:**
+
 ```toml
 +++
 title = 'My Europe Trip'
 odometer_km = '3,240'
+title_image = 'title.jpg'
+draft = false
 +++
 
 # My Europe Trip
@@ -92,6 +95,7 @@ Trip description in Markdown...
 ```
 
 **text.md example:**
+
 ```toml
 +++
 date = 2026-03-31
@@ -100,7 +104,8 @@ weather = 'Cloudy, light wind'
 temperature_c = 9
 lat = 52.52
 lon = 13.405
-point_name = 'Berlin – Starting Point'
+title = 'Berlin - Starting Point'
+draft = false
 +++
 
 # Departure from Berlin
@@ -137,14 +142,14 @@ flutter_app/
 
 ## Dependencies
 
-| Package | Purpose |
-|---|---|
-| `flutter_riverpod` | State management |
-| `go_router` | Navigation |
-| `http` | GitHub REST API calls |
-| `flutter_secure_storage` | Encrypted token storage |
-| `path_provider` | App documents directory |
-| `shared_preferences` | Non-sensitive settings (repo URL, folder path) |
-| `flutter_markdown` | Markdown rendering in preview mode |
-| `crypto` | SHA computation |
-| `intl` | Date formatting |
+| Package                  | Purpose                                        |
+| ------------------------ | ---------------------------------------------- |
+| `flutter_riverpod`       | State management                               |
+| `go_router`              | Navigation                                     |
+| `http`                   | GitHub REST API calls                          |
+| `flutter_secure_storage` | Encrypted token storage                        |
+| `path_provider`          | App documents directory                        |
+| `shared_preferences`     | Non-sensitive settings (repo URL, folder path) |
+| `flutter_markdown`       | Markdown rendering in preview mode             |
+| `crypto`                 | SHA computation                                |
+| `intl`                   | Date formatting                                |

@@ -104,7 +104,7 @@ class TestLoadEntry:
         assert entry.point_geojson is not None
         coords = entry.point_geojson["geometry"]["coordinates"]
         assert coords == [13.405, 52.52]
-        assert entry.point_geojson["properties"]["name"] == "Berlin – Start"
+        assert entry.point_geojson["properties"]["name"] == "Departure from Berlin"
 
         # JSON serialisation
         assert '"Point"' in entry.point_geojson_json
@@ -171,6 +171,26 @@ class TestLoadEntry:
         assert "fuel_liters" in entry.extra
         assert entry.extra["fuel_liters"] == "12"
 
+    def test_entry_title_falls_back_to_point_name(self, tmp_path: Path):
+        entry_dir = tmp_path / "legacy-title"
+        entry_dir.mkdir()
+        (entry_dir / "text.md").write_text(
+            "+++\ndate = 2026-01-01\npoint_name = 'Legacy Name'\n+++\nBody",
+            encoding="utf-8",
+        )
+        entry = load_entry(entry_dir, "trip-x")
+        assert entry.title == "Legacy Name"
+
+    def test_entry_draft_flag(self, tmp_path: Path):
+        entry_dir = tmp_path / "draft-entry"
+        entry_dir.mkdir()
+        (entry_dir / "text.md").write_text(
+            "+++\ndate = 2026-01-01\ntitle = 'Draft Day'\ndraft = true\n+++\nBody",
+            encoding="utf-8",
+        )
+        entry = load_entry(entry_dir, "trip-x")
+        assert entry.draft is True
+
 
 # ── load_trip ───────────────────────────────────────────────────────────────
 
@@ -182,6 +202,7 @@ class TestLoadTrip:
         assert trip.id == "2026-test-tour"
         assert trip.title == "Test-Tour 2026"
         assert trip.odometer_km == "1.200"
+        assert trip.title_image == "title.png"
         assert "test trip" in trip.description_md
 
         # Route
@@ -273,6 +294,34 @@ class TestLoadTrip:
         assert trip.start_date == "2026-05-01"
         assert trip.duration_days == 5
 
+    def test_trip_odometer_fallback_from_route(self, tmp_path: Path):
+        trip_dir = tmp_path / "distance-fallback"
+        trip_dir.mkdir()
+        (trip_dir / "description.md").write_text(
+            "+++\ntitle = 'Distance Fallback'\n+++\n", encoding="utf-8"
+        )
+        (trip_dir / "route.geojson").write_text(
+            json.dumps(
+                {
+                    "type": "FeatureCollection",
+                    "features": [
+                        {
+                            "type": "Feature",
+                            "geometry": {
+                                "type": "LineString",
+                                "coordinates": [[13.405, 52.52], [14.4376, 50.0755]],
+                            },
+                            "properties": {},
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        trip = load_trip(trip_dir)
+        assert trip.odometer_km.isdigit()
+        assert int(trip.odometer_km) > 0
+
 
 # ── load_all_trips ──────────────────────────────────────────────────────────
 
@@ -336,6 +385,39 @@ class TestLoadAllTrips:
         assert trips[1].start_date == "2026-06-01"
         assert trips[2].id == "trip-c"
         assert trips[2].start_date == "2026-05-01"
+
+    def test_draft_entries_and_trips_are_skipped(self, tmp_path: Path):
+        data_dir = tmp_path / "data" / "trips"
+        data_dir.mkdir(parents=True)
+
+        visible_trip = data_dir / "visible-trip"
+        visible_trip.mkdir()
+        (visible_trip / "description.md").write_text(
+            "+++\ntitle = 'Visible Trip'\n+++\n", encoding="utf-8"
+        )
+        visible_entries = visible_trip / "entries"
+        visible_entries.mkdir()
+        (visible_entries / "2026-01-01-visible").mkdir()
+        (visible_entries / "2026-01-01-visible" / "text.md").write_text(
+            "+++\ndate = 2026-01-01\ntitle = 'Visible'\n+++\nBody", encoding="utf-8"
+        )
+        (visible_entries / "2026-01-02-draft").mkdir()
+        (visible_entries / "2026-01-02-draft" / "text.md").write_text(
+            "+++\ndate = 2026-01-02\ntitle = 'Draft'\ndraft = true\n+++\nBody",
+            encoding="utf-8",
+        )
+
+        hidden_trip = data_dir / "draft-trip"
+        hidden_trip.mkdir()
+        (hidden_trip / "description.md").write_text(
+            "+++\ntitle = 'Draft Trip'\ndraft = true\n+++\n", encoding="utf-8"
+        )
+
+        trips = load_all_trips(tmp_path / "data")
+        assert len(trips) == 1
+        assert trips[0].id == "visible-trip"
+        assert len(trips[0].entries) == 1
+        assert trips[0].entries[0].id == "2026-01-01-visible"
 
 
 class TestCountryFlags:

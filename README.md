@@ -29,14 +29,14 @@ python -m tracevoyage_gen build --data example_data --fetch-vendor
 python -m tracevoyage_gen build [options]
 ```
 
-| Option | Default | Description |
-| --- | --- | --- |
-| --data DIR | data | Root content directory |
-| --output DIR | dist | Output directory |
-| --templates DIR | bundled theme | Custom Jinja2 templates |
-| --assets DIR | bundled theme | Custom assets |
-| --fetch-vendor | off | Download Leaflet assets during build |
-| --exclude-videos | off | Exclude videos from output as if they were not in input media |
+| Option           | Default       | Description                                                   |
+| ---------------- | ------------- | ------------------------------------------------------------- |
+| --data DIR       | data          | Root content directory                                        |
+| --output DIR     | dist          | Output directory                                              |
+| --templates DIR  | bundled theme | Custom Jinja2 templates                                       |
+| --assets DIR     | bundled theme | Custom assets                                                 |
+| --fetch-vendor   | off           | Download Leaflet assets during build                          |
+| --exclude-videos | off           | Exclude videos from output as if they were not in input media |
 
 Example for smaller output size:
 
@@ -66,6 +66,23 @@ data/
           text.md
           media/
 ```
+
+## Metadata highlights
+
+Trip front matter (`description.md`):
+
+- `title` (required/recommended)
+- `odometer_km` (optional; if missing, generator computes rounded km from route)
+- `title_image` (optional; should point to a `title.*` file in trip root)
+- `draft = true` (optional; draft trips are skipped)
+
+Entry front matter (`entries/*/text.md`):
+
+- `title` (recommended; primary entry title)
+- `date`, `country`, `weather`, `temperature_c`, `lat`, `lon`
+- `draft = true` (optional; draft entries are skipped)
+
+Compatibility note: legacy `point_name` is still read as a fallback title.
 
 ## Importing from FindPenguins
 

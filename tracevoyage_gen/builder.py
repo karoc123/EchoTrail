@@ -22,7 +22,7 @@ from markupsafe import Markup
 
 from tracevoyage_gen.exceptions import TemplateNotFoundError
 from tracevoyage_gen.schema import Entry, Trip, load_all_trips
-from tracevoyage_gen.images import process_entry_media
+from tracevoyage_gen.images import process_entry_media, process_trip_title_image
 
 log = logging.getLogger(__name__)
 
@@ -306,7 +306,7 @@ def _render_entry_page(
     next_entry: Entry | None = None,
 ) -> None:
     tpl = env.get_template("entry.html")
-    page_title = entry.date or entry.id
+    page_title = entry.title or entry.date or entry.id
     html = tpl.render(
         trip=trip,
         entry=entry,
@@ -320,8 +320,15 @@ def _render_entry_page(
 
 
 def _copy_trip_media(trip: Trip, out_path: Path, *, skip_videos: bool = False) -> None:
-    """Copy trip cover image and all entry media files to dist/."""
+    """Copy trip-level images and all entry media files to dist/."""
     trip_src = trip.source_dir
+
+    # Title image (size-constrained, same filename)
+    if trip.title_image:
+        src = trip_src / trip.title_image
+        dst = out_path / "trips" / trip.id / trip.title_image
+        if src.exists():
+            process_trip_title_image(src, dst)
 
     # Cover
     if trip.cover:

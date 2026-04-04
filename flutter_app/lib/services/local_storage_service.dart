@@ -94,13 +94,17 @@ class LocalStorageService {
 
     String title = tripId;
     String odometerKm = '';
+    String titleImage = '';
     String descriptionMd = '';
+    bool draft = false;
 
     if (await descFile.exists()) {
       final content = await descFile.readAsString();
       final parsed = TomlService.parseFrontMatter(content);
       title = parsed.meta['title'] as String? ?? tripId;
       odometerKm = parsed.meta['odometer_km'] as String? ?? '';
+      titleImage = parsed.meta['title_image'] as String? ?? '';
+      draft = parsed.meta['draft'] as bool? ?? false;
       descriptionMd = parsed.body;
     }
 
@@ -109,7 +113,9 @@ class LocalStorageService {
       id: tripId,
       title: title,
       odometerKm: odometerKm,
+      titleImage: titleImage,
       descriptionMd: descriptionMd,
+      draft: draft,
       entries: entries,
     );
   }
@@ -135,18 +141,22 @@ class LocalStorageService {
     final mediaFile = File(p.join(entryDir.path, 'media.json'));
 
     String date = '';
+    String title = '';
     String country = '';
     String weather = '';
     String temperatureC = '';
     double? lat;
     double? lon;
-    String pointName = '';
     String textMd = '';
+    bool draft = false;
 
     if (await textFile.exists()) {
       final content = await textFile.readAsString();
       final parsed = TomlService.parseFrontMatter(content);
       date = parsed.meta['date']?.toString() ?? '';
+      title = parsed.meta['title'] as String? ??
+          parsed.meta['point_name'] as String? ??
+          '';
       country = parsed.meta['country'] as String? ?? '';
       weather = parsed.meta['weather'] as String? ?? '';
       final tempRaw = parsed.meta['temperature_c'];
@@ -155,7 +165,7 @@ class LocalStorageService {
       if (latRaw is num) lat = latRaw.toDouble();
       final lonRaw = parsed.meta['lon'];
       if (lonRaw is num) lon = lonRaw.toDouble();
-      pointName = parsed.meta['point_name'] as String? ?? '';
+      draft = parsed.meta['draft'] as bool? ?? false;
       textMd = parsed.body;
     }
 
@@ -173,14 +183,15 @@ class LocalStorageService {
 
     return Entry(
       id: entryId,
+      title: title,
       date: date,
       country: country,
       weather: weather,
       temperatureC: temperatureC,
       lat: lat,
       lon: lon,
-      pointName: pointName,
       textMd: textMd,
+      draft: draft,
       media: media,
     );
   }
@@ -193,6 +204,8 @@ class LocalStorageService {
     final meta = <String, dynamic>{
       'title': trip.title,
       if (trip.odometerKm.isNotEmpty) 'odometer_km': trip.odometerKm,
+      if (trip.titleImage.isNotEmpty) 'title_image': trip.titleImage,
+      if (trip.draft) 'draft': true,
     };
     final content = TomlService.buildFileContent(meta, trip.descriptionMd);
     await File(p.join(tripDir.path, 'description.md')).writeAsString(content);
@@ -207,6 +220,7 @@ class LocalStorageService {
 
     final meta = <String, dynamic>{};
     if (entry.date.isNotEmpty) meta['date'] = entry.date;
+    if (entry.title.isNotEmpty) meta['title'] = entry.title;
     if (entry.country.isNotEmpty) meta['country'] = entry.country;
     if (entry.weather.isNotEmpty) meta['weather'] = entry.weather;
     if (entry.temperatureC.isNotEmpty) {
@@ -216,7 +230,7 @@ class LocalStorageService {
     }
     if (entry.lat != null) meta['lat'] = entry.lat;
     if (entry.lon != null) meta['lon'] = entry.lon;
-    if (entry.pointName.isNotEmpty) meta['point_name'] = entry.pointName;
+    if (entry.draft) meta['draft'] = true;
 
     final textContent = TomlService.buildFileContent(meta, entry.textMd);
     await File(p.join(entryDir.path, 'text.md')).writeAsString(textContent);

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -92,6 +93,10 @@ class TestBuildIntegration:
         html = self._read("index.html")
         assert "Test-Tour 2026" in html
 
+    def test_index_contains_title_banner_image(self):
+        html = self._read("index.html")
+        assert 'src="trips/2026-test-tour/title.png"' in html
+
     def test_index_contains_trip_link(self):
         html = self._read("index.html")
         assert 'href="trips/2026-test-tour/index.html"' in html
@@ -114,6 +119,10 @@ class TestBuildIntegration:
         html = self._read("trips", "2026-test-tour", "index.html")
         assert "<h1>Test-Tour 2026</h1>" in html
 
+    def test_trip_contains_title_banner(self):
+        html = self._read("trips", "2026-test-tour", "index.html")
+        assert 'src="../../trips/2026-test-tour/title.png"' in html
+
     def test_trip_contains_route_geojson(self):
         html = self._read("trips", "2026-test-tour", "index.html")
         assert "LineString" in html
@@ -126,6 +135,10 @@ class TestBuildIntegration:
         assert "2026-03-31-berlin" in html
         assert "🇩🇪" in html
         assert "🇨🇿" in html
+
+    def test_trip_entry_list_contains_image_teaser(self):
+        html = self._read("trips", "2026-test-tour", "index.html")
+        assert 'thumb_foto1.jpg' in html
 
     def test_trip_contains_visited_countries_section(self):
         html = self._read("trips", "2026-test-tour", "index.html")
@@ -229,6 +242,9 @@ class TestBuildIntegration:
         assert (media_dir / "foto1.jpg").exists()
         assert (media_dir / "thumb_foto1.jpg").exists()
         assert (media_dir / "clip.mp4").exists()
+
+    def test_trip_title_image_is_copied(self):
+        assert (self.dist / "trips" / "2026-test-tour" / "title.png").exists()
 
     # -- Layout order: gallery → text → map --
 
@@ -407,6 +423,89 @@ class TestBuildEdgeCases:
 
         build(data_dir=str(example_data_dir), output_dir=str(out))
         assert not stale.exists()
+
+    def test_build_skips_draft_trip_and_entry(
+        self, tmp_path: Path, templates_dir: Path, assets_dir: Path
+    ):
+        data = tmp_path / "data" / "trips"
+        data.mkdir(parents=True)
+
+        visible_trip = data / "visible"
+        visible_trip.mkdir()
+        (visible_trip / "description.md").write_text(
+            "+++\ntitle = 'Visible'\n+++\n", encoding="utf-8"
+        )
+        visible_entries = visible_trip / "entries"
+        visible_entries.mkdir()
+        (visible_entries / "2026-01-01-live").mkdir()
+        (visible_entries / "2026-01-01-live" / "text.md").write_text(
+            "+++\ndate = 2026-01-01\ntitle = 'Live'\n+++\n", encoding="utf-8"
+        )
+        (visible_entries / "2026-01-02-draft").mkdir()
+        (visible_entries / "2026-01-02-draft" / "text.md").write_text(
+            "+++\ndate = 2026-01-02\ntitle = 'Draft'\ndraft = true\n+++\n",
+            encoding="utf-8",
+        )
+
+        hidden_trip = data / "hidden"
+        hidden_trip.mkdir()
+        (hidden_trip / "description.md").write_text(
+            "+++\ntitle = 'Hidden'\ndraft = true\n+++\n", encoding="utf-8"
+        )
+
+        dist = tmp_path / "dist"
+        build(
+            data_dir=str(tmp_path / "data"),
+            output_dir=str(dist),
+            templates_dir=str(templates_dir),
+            assets_dir=str(assets_dir),
+        )
+
+        index_html = (dist / "index.html").read_text(encoding="utf-8")
+        assert "Visible" in index_html
+        assert "Hidden" not in index_html
+
+        trip_html = (dist / "trips" / "visible" / "index.html").read_text(encoding="utf-8")
+        assert "Live" in trip_html
+        assert "Draft" not in trip_html
+
+    def test_build_computes_odometer_when_missing(
+        self, tmp_path: Path, templates_dir: Path, assets_dir: Path
+    ):
+        trip_dir = tmp_path / "data" / "trips" / "distance-trip"
+        trip_dir.mkdir(parents=True)
+        (trip_dir / "description.md").write_text(
+            "+++\ntitle = 'Distance Trip'\n+++\n", encoding="utf-8"
+        )
+        (trip_dir / "route.geojson").write_text(
+            json.dumps(
+                {
+                    "type": "FeatureCollection",
+                    "features": [
+                        {
+                            "type": "Feature",
+                            "geometry": {
+                                "type": "LineString",
+                                "coordinates": [[13.405, 52.52], [14.4376, 50.0755]],
+                            },
+                            "properties": {},
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        dist = tmp_path / "dist"
+        build(
+            data_dir=str(tmp_path / "data"),
+            output_dir=str(dist),
+            templates_dir=str(templates_dir),
+            assets_dir=str(assets_dir),
+        )
+
+        index_html = (dist / "index.html").read_text(encoding="utf-8")
+        assert "km" in index_html
 
 
 # ── BuildResult ─────────────────────────────────────────────────────────────

@@ -22,12 +22,13 @@ class _EntryEditorScreenState extends ConsumerState<EntryEditorScreen> {
   final _tempCtrl = TextEditingController();
   final _latCtrl = TextEditingController();
   final _lonCtrl = TextEditingController();
-  final _pointNameCtrl = TextEditingController();
+  final _titleCtrl = TextEditingController();
   final _textCtrl = TextEditingController();
 
   bool _initialized = false;
   bool _isPreview = false;
   bool _isNew = false;
+  bool _draft = false;
   List<MediaItem> _media = [];
 
   @override
@@ -38,7 +39,7 @@ class _EntryEditorScreenState extends ConsumerState<EntryEditorScreen> {
     _tempCtrl.dispose();
     _latCtrl.dispose();
     _lonCtrl.dispose();
-    _pointNameCtrl.dispose();
+    _titleCtrl.dispose();
     _textCtrl.dispose();
     super.dispose();
   }
@@ -51,8 +52,9 @@ class _EntryEditorScreenState extends ConsumerState<EntryEditorScreen> {
     _tempCtrl.text = entry.temperatureC;
     _latCtrl.text = entry.lat?.toString() ?? '';
     _lonCtrl.text = entry.lon?.toString() ?? '';
-    _pointNameCtrl.text = entry.pointName;
+    _titleCtrl.text = entry.title;
     _textCtrl.text = entry.textMd;
+    _draft = entry.draft;
     _media = entry.media;
     _initialized = true;
   }
@@ -64,7 +66,7 @@ class _EntryEditorScreenState extends ConsumerState<EntryEditorScreen> {
 
   String _buildEntryId() {
     final date = _dateCtrl.text.trim();
-    final name = _pointNameCtrl.text.trim();
+    final name = _titleCtrl.text.trim();
     if (name.isNotEmpty) return '$date-${_slugify(name)}';
     return date.isEmpty ? widget.entryId : '$date-entry';
   }
@@ -73,14 +75,15 @@ class _EntryEditorScreenState extends ConsumerState<EntryEditorScreen> {
     final newId = _isNew ? _buildEntryId() : widget.entryId;
     final entry = Entry(
       id: newId,
+      title: _titleCtrl.text.trim(),
       date: _dateCtrl.text.trim(),
       country: _countryCtrl.text.trim(),
       weather: _weatherCtrl.text.trim(),
       temperatureC: _tempCtrl.text.trim(),
       lat: double.tryParse(_latCtrl.text.trim()),
       lon: double.tryParse(_lonCtrl.text.trim()),
-      pointName: _pointNameCtrl.text.trim(),
       textMd: _textCtrl.text,
+      draft: _draft,
       media: _media,
     );
 
@@ -171,11 +174,18 @@ class _EntryEditorScreenState extends ConsumerState<EntryEditorScreen> {
                 ),
                 const SizedBox(height: 12),
                 TextField(
-                  controller: _pointNameCtrl,
+                  controller: _titleCtrl,
                   decoration: const InputDecoration(
-                    labelText: 'Point Name',
+                    labelText: 'Title',
                     border: OutlineInputBorder(),
                   ),
+                ),
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('Draft'),
+                  subtitle: const Text('Draft entries are skipped by the generator'),
+                  value: _draft,
+                  onChanged: (value) => setState(() => _draft = value),
                 ),
                 const SizedBox(height: 12),
                 TextField(

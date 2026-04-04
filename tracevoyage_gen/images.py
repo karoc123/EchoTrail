@@ -102,3 +102,39 @@ def process_entry_media(src_dir: Path, dst_dir: Path, *, skip_videos: bool = Fal
                 continue
             # Videos and other files: copy unchanged
             shutil.copy2(src_file, dst_dir / src_file.name)
+
+
+def process_trip_title_image(src_file: Path, dst_file: Path) -> None:
+    """Copy a trip title image with web-size constraints.
+
+    Keeps the original filename and extension while constraining image
+    dimensions to WEB_MAX_PX.
+    """
+    ext = src_file.suffix.lower()
+    if ext not in _RESIZABLE_EXTS:
+        dst_file.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src_file, dst_file)
+        return
+
+    try:
+        with Image.open(src_file) as img:
+            src_format = img.format or "JPEG"
+            if src_format.upper() == "JPEG" and img.mode not in ("RGB", "L"):
+                img = img.convert("RGB")
+
+            if _needs_resize(img, WEB_MAX_PX):
+                img.thumbnail((WEB_MAX_PX, WEB_MAX_PX), RESIZE_FILTER)
+
+            dst_file.parent.mkdir(parents=True, exist_ok=True)
+            save_kwargs: dict[str, object] = {"optimize": True}
+            if src_format.upper() in {"JPEG", "WEBP"}:
+                save_kwargs["quality"] = WEB_QUALITY
+            img.save(dst_file, format=src_format, **save_kwargs)
+    except Exception as exc:
+        log.warning(
+            "Could not process title image %s: %s - copying original",
+            src_file,
+            exc,
+        )
+        dst_file.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src_file, dst_file)

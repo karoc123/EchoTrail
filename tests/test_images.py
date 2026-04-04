@@ -11,6 +11,7 @@ from tracevoyage_gen.images import (
     resize_image,
     thumb_name,
     process_entry_media,
+    process_trip_title_image,
     WEB_MAX_PX,
     THUMB_MAX_PX,
 )
@@ -135,3 +136,16 @@ class TestProcessEntryMedia:
         assert (dst / "thumb_a.jpg").exists()
         assert (dst / "b.png").exists()
         assert (dst / "thumb_b.jpg").exists()
+
+
+class TestProcessTripTitleImage:
+    def test_resizes_title_image(self, tmp_path: Path):
+        src = tmp_path / "title.jpg"
+        dst = tmp_path / "out" / "title.jpg"
+        _create_test_jpeg(src, 3200, 1200)
+
+        process_trip_title_image(src, dst)
+
+        assert dst.exists()
+        with Image.open(dst) as img:
+            assert max(img.size) <= WEB_MAX_PX

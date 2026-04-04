@@ -157,6 +157,10 @@ hr {
   margin-bottom: 0.75rem;
 }
 
+.trip-cover--banner {
+  max-height: 220px;
+}
+
 .trip-card__body h2 {
   font-size: 1.2rem;
   margin-bottom: 0.25rem;
@@ -202,6 +206,17 @@ hr {
 .trip-detail h1 {
   font-size: 1.8rem;
   margin-bottom: 0.4rem;
+}
+
+.trip-title-banner {
+  margin: 0.35rem 0 1.1rem;
+}
+
+.trip-title-banner img {
+  width: 100%;
+  max-height: 280px;
+  object-fit: cover;
+  border-radius: 6px;
 }
 
 .trip-meta-list {
@@ -283,8 +298,29 @@ hr {
 
 .entry-item a {
   display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
+  flex-direction: row;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.entry-content {
+  display: flex;
+  flex-direction: row;
+  gap: 1rem;
+  flex: 1;
+  width: 100%;
+}
+
+.entry-left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.entry-right {
+  flex-shrink: 0;
 }
 
 .entry-date {
@@ -298,9 +334,43 @@ hr {
   font-size: 0.9rem;
 }
 
+.entry-date--subtle {
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: #8f8f8f;
+  margin-left: 0.4rem;
+}
+
+.entry-mainline {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.entry-title {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.entry-subline {
+  min-height: 1rem;
+}
+
 .entry-country {
   font-size: 0.82rem;
   color: #888;
+}
+
+.entry-teaser {
+  margin-top: 0.35rem;
+}
+
+.entry-teaser img {
+  width: 100%;
+  max-width: 220px;
+  max-height: 120px;
+  object-fit: cover;
+  border-radius: 4px;
 }
 
 .flag-emoji {
